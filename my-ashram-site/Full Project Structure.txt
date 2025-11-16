@@ -1,0 +1,27 @@
+my-ashram-site
+│
+├── public
+│   └── images
+│       ├── ashram-hero1.jpg
+│       ├── ashram-hero2.jpg
+│       ├── ashram-hero3.jpg
+│       ├── meditation-hall.jpg
+│       ├── nature-walk.jpg
+│       ├── group-session.jpg
+│       └── accommodation.jpg
+│
+├── src
+│   ├── App.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   ├── components/
+│   │   └── ui/
+│   │       ├── button.tsx
+│   │       └── card.tsx
+│   └── lib/
+│       └── utils.ts
+│
+├── index.html
+├── package.json
+├── tailwind.config.js
+├── vite.config.ts

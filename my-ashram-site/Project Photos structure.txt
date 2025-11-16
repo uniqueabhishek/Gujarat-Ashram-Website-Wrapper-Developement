@@ -1,0 +1,25 @@
+my-ashram-site/
+│
+├── public/
+│   └── images/
+│       ├── ashram-hero1.jpg
+│       ├── ashram-hero2.jpg
+│       ├── ashram-hero3.jpg
+│       ├── meditation-hall.jpg
+│       ├── nature-walk.jpg
+│       ├── group-session.jpg
+│       └── accommodation.jpg
+│
+└── src/
+
+
+
+
+
+ashram-hero1.jpg
+ashram-hero2.jpg
+ashram-hero3.jpg
+meditation-hall.jpg
+nature-walk.jpg
+group-session.jpg
+accommodation.jpg

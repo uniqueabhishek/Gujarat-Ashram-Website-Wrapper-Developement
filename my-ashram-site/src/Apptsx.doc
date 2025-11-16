@@ -1,0 +1,337 @@
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  MapPin,
+  Calendar,
+  Home,
+  Users,
+  Image as ImageIcon,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Swiper imports
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/effect-fade";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
+
+// Slideshow images
+const HERO_IMAGES = [
+  "/images/ashram-hero1.jpg",
+  "/images/ashram-hero2.jpg",
+  "/images/ashram-hero3.jpg",
+  "/images/ashram-hero4.jpg",
+  "/images/ashram-hero5.jpg",
+  "/images/ashram-hero6.jpg",
+  "/images/ashram-hero7.jpg",
+  "/images/ashram-hero8.jpg",
+  "/images/ashram-hero9.jpg",
+  "/images/ashram-hero10.jpg",
+  "/images/ashram-hero11.jpg",
+  "/images/ashram-hero12.jpg",
+  "/images/ashram-hero13.jpg",
+  "/images/ashram-hero14.jpg",
+  "/images/ashram-hero15.jpg",
+  "/images/ashram-hero16.jpg",
+];
+
+const EVENTS = [
+  {
+    id: "e1",
+    title: "Happiness Program — Weekend Batch",
+    date: "Dec 5 - Dec 7, 2025",
+    desc: "A weekend immersion in breathing and mindfulness.",
+  },
+  {
+    id: "e2",
+    title: "Sudarshan Kriya Workshop",
+    date: "Jan 10, 2026",
+    desc: "Guided practice with certified instructors.",
+  },
+  {
+    id: "e3",
+    title: "Silence Retreat",
+    date: "Feb 14 - Feb 20, 2026",
+    desc: "Deep reflective retreat in nature.",
+  },
+];
+
+const GALLERY = [
+  "/images/meditation-hall.jpg",
+  "/images/nature-walk.jpg",
+  "/images/group-session.jpg",
+  "/images/accommodation.jpg",
+];
+
+function MenuBar() {
+  const [items, setItems] = React.useState(() => {
+    const saved = localStorage.getItem("aol_menu_items");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          { name: "Meditation Hall", url: "https://example.com" },
+          { name: "Programs", url: "https://example.com" },
+        ];
+  });
+
+  const [editing, setEditing] = React.useState(false);
+
+  const save = (newItems: { name: string; url: string }[]) => {
+    setItems(newItems);
+    localStorage.setItem("aol_menu_items", JSON.stringify(newItems));
+  };
+
+  return (
+    <div className="absolute top-4 right-6 z-50 text-white">
+      <div className="flex gap-4">
+        {items.map((item, i) => (
+          <button
+            key={i}
+            onClick={() => window.open(item.url, "_blank")}
+            className="text-lg font-semibold hover:underline"
+          >
+            {item.name}
+          </button>
+        ))}
+
+        {window.location.search.includes("admin=true") && (
+          <button
+            onClick={() => setEditing(true)}
+            className="ml-4 px-3 py-1 bg-white/20 rounded"
+          >
+            ⚙ Edit Menu
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <div className="mt-4 p-4 bg-white text-black rounded shadow-lg w-64">
+          <h3 className="font-bold mb-2">Edit Menu</h3>
+
+          {items.map((it, idx) => (
+            <div key={idx} className="flex flex-col mb-2">
+              <input
+                className="border px-2 py-1 mb-1"
+                value={it.name}
+                onChange={(e) => {
+                  const c = [...items];
+                  c[idx].name = e.target.value;
+                  save(c);
+                }}
+              />
+              <input
+                className="border px-2 py-1"
+                value={it.url}
+                onChange={(e) => {
+                  const c = [...items];
+                  c[idx].url = e.target.value;
+                  save(c);
+                }}
+              />
+            </div>
+          ))}
+
+          <button
+            className="mt-2 px-2 py-1 bg-green-500 text-white rounded"
+            onClick={() => {
+              const c = [...items, { name: "New Item", url: "https://" }];
+              save(c);
+            }}
+          >
+            + Add Item
+          </button>
+
+          <button
+            className="mt-2 ml-2 px-2 py-1 bg-gray-300 rounded"
+            onClick={() => setEditing(false)}
+          >
+            Close
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-amber-50 text-neutral-900">
+
+      {/* HERO */}
+      <header className="relative overflow-hidden h-[480px]">
+        <MenuBar />
+
+        <div className="absolute inset-0">
+          <Swiper
+            modules={[EffectFade, Autoplay, Navigation, Pagination]}
+            effect="fade"
+            autoplay={{ delay: 4000, disableOnInteraction: false }}
+            navigation
+            pagination={{ clickable: true }}
+            loop
+            className="h-full w-full"
+          >
+            {HERO_IMAGES.map((src, index) => (
+              <SwiperSlide key={index}>
+                <div
+                  className="w-full h-full bg-cover bg-center filter brightness-75"
+                  style={{ backgroundImage: `url(${src})` }}
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center text-white"
+          >
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold drop-shadow-md">
+              Art of Living — Gujarat Ashram
+            </h1>
+            <p className="mt-4 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
+              A space for inner peace, wisdom, and rejuvenation.
+            </p>
+
+            <div className="mt-8 flex justify-center gap-4 flex-wrap">
+              <Button className="px-6 py-3 rounded-2xl shadow">
+                Visit Ashram
+              </Button>
+
+              <Button variant="outline" className="px-6 py-3 rounded-2xl">
+                Upcoming Programs
+              </Button>
+
+              <Button variant="ghost" className="px-6 py-3 rounded-2xl">
+                Contact / Directions
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="h-24 bg-gradient-to-b from-transparent to-amber-50" />
+      </header>
+
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+
+        {/* INFO CARDS */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 -mt-12">
+          <Card className="shadow-lg">
+            <CardContent className="flex items-start gap-4">
+              <Home className="w-8 h-8 text-amber-600" />
+              <div>
+                <h3 className="font-semibold text-lg">Ashram Overview</h3>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Spreading happiness and mindfulness through yoga, meditation, and seva.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg">
+            <CardContent className="flex items-start gap-4">
+              <Users className="w-8 h-8 text-emerald-600" />
+              <div>
+                <h3 className="font-semibold text-lg">Activities & Programs</h3>
+                <ul className="mt-1 text-sm list-disc list-inside text-neutral-600">
+                  <li>Sudarshan Kriya</li>
+                  <li>Meditation retreats</li>
+                  <li>Yoga sessions</li>
+                  <li>Seva projects</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg">
+            <CardContent className="flex items-start gap-4">
+              <ImageIcon className="w-8 h-8 text-sky-600" />
+              <div>
+                <h3 className="font-semibold text-lg">Facilities</h3>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Accommodation • Dining • Gardens • Meditation spaces
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* WHY VISIT */}
+        <section className="mt-10 bg-white p-6 rounded-2xl shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Why Visit the Gujarat Ashram?</h2>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+                Calm environment, wisdom from trained teachers, deep meditation experiences — weekend, residential, and long-term programs.
+              </p>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {GALLERY.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    className="rounded-lg shadow-sm w-full h-28 object-cover"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Card className="p-4">
+                <CardContent>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <MapPin className="w-5 h-5" /> Location & Directions
+                  </h3>
+                  <p className="mt-2 text-sm text-neutral-600">
+                    Ahmedabad, Gujarat — India
+                  </p>
+
+                  <div className="mt-4 flex gap-2 flex-wrap">
+                    <Button>Navigate</Button>
+                    <Button variant="outline">Call</Button>
+                    <Button variant="ghost">WhatsApp</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* EVENTS */}
+        <section className="mt-10">
+          <h3 className="text-xl font-semibold mb-4 flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-amber-600" /> Upcoming Events
+          </h3>
+
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {EVENTS.map((ev) => (
+              <motion.div
+                key={ev.id}
+                whileHover={{ scale: 1.02 }}
+                className="min-w-[260px] bg-white rounded-2xl shadow p-4"
+              >
+                <h4 className="font-semibold">{ev.title}</h4>
+                <p className="text-sm text-neutral-600 mt-1">{ev.date}</p>
+                <p className="text-sm mt-2">{ev.desc}</p>
+
+                <div className="mt-4">
+                  <Button className="w-full">Register Now</Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default App;
