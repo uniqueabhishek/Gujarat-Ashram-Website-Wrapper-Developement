@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogOut, Menu, Image, Link } from "lucide-react";
 
 // ─────────────────────────────────────────
 // LocalStorage helpers
@@ -53,7 +54,7 @@ const AdminDashboard: React.FC = () => {
     save("aol_menu_items", menuItems);
     save("hero_buttons", heroButtons);
     save("footer_links", footerLinks);
-    alert("Saved successfully! Refresh main site.");
+    alert("✅ Changes saved successfully! Refresh the main site to see updates.");
   }
 
   const handleLogout = () => {
@@ -62,37 +63,65 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 px-8 py-10">
-      <div className="max-w-4xl mx-auto">
-
-        {/* TITLE & LOGOUT */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">
-            Ashram Website — Admin Dashboard
-          </h1>
-          <Button variant="outline" onClick={handleLogout}>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Ashram Admin Dashboard
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage your website content
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
             Logout
           </Button>
         </div>
+      </div>
 
-        {/* TABS */}
-        <div className="flex justify-center gap-4 mb-6">
-          <Button variant={tab === "menu" ? "default" : "outline"} onClick={() => setTab("menu")}>
-            Menu
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border">
+          <Button
+            variant={tab === "menu" ? "default" : "ghost"}
+            onClick={() => setTab("menu")}
+            className="flex-1 flex items-center justify-center gap-2"
+          >
+            <Menu className="w-4 h-4" />
+            Menu Items
           </Button>
 
-          <Button variant={tab === "hero" ? "default" : "outline"} onClick={() => setTab("hero")}>
+          <Button
+            variant={tab === "hero" ? "default" : "ghost"}
+            onClick={() => setTab("hero")}
+            className="flex-1 flex items-center justify-center gap-2"
+          >
+            <Image className="w-4 h-4" />
             Hero Buttons
           </Button>
 
-          <Button variant={tab === "footer" ? "default" : "outline"} onClick={() => setTab("footer")}>
+          <Button
+            variant={tab === "footer" ? "default" : "ghost"}
+            onClick={() => setTab("footer")}
+            className="flex-1 flex items-center justify-center gap-2"
+          >
+            <Link className="w-4 h-4" />
             Footer Links
           </Button>
         </div>
 
-        {/* PANEL */}
-        <Card className="p-4">
-          <CardContent>
+        {/* Editor Panel */}
+        <Card className="shadow-lg border-0">
+          <CardContent className="p-6">
             {tab === "menu" && (
               <MenuEditor items={menuItems} setItems={setMenuItems} />
             )}
@@ -107,10 +136,14 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* SAVE BUTTON */}
-        <div className="mt-6 text-center">
-          <Button className="px-6 py-3" onClick={handleSave}>
-            Save All Changes
+        {/* Save Button */}
+        <div className="mt-6 flex justify-center">
+          <Button
+            size="lg"
+            onClick={handleSave}
+            className="px-8 bg-orange-500 hover:bg-orange-600"
+          >
+            💾 Save All Changes
           </Button>
         </div>
 
@@ -127,45 +160,69 @@ export default AdminDashboard;
 function MenuEditor({ items, setItems }: any) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Menu Items</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Menu Items</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Manage navigation menu items that appear in the header
+        </p>
+      </div>
 
-      {items.map((item: any, idx: number) => (
-        <div key={idx} className="mb-4 border p-3 rounded-lg bg-white shadow-sm">
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="Name"
-            value={item.name}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].name = e.target.value;
-              setItems(copy);
-            }}
-          />
+      <div className="space-y-4">
+        {items.map((item: any, idx: number) => (
+          <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Menu Name
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., Meditation Hall"
+                    value={item.name}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].name = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <input
-            className="border p-2 w-full"
-            placeholder="URL"
-            value={item.url}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].url = e.target.value;
-              setItems(copy);
-            }}
-          />
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    URL
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="https://example.com"
+                    value={item.url}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].url = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <div className="text-right mt-2">
-            <Button
-              variant="ghost"
-              onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
-            >
-              Remove
-            </Button>
-          </div>
-        </div>
-      ))}
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️ Remove
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Button
         variant="outline"
+        className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
           setItems([...items, { name: "New Item", url: "https://" }])
         }
@@ -182,61 +239,88 @@ function MenuEditor({ items, setItems }: any) {
 function HeroEditor({ items, setItems }: any) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Hero Buttons</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Hero Section Buttons</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Manage call-to-action buttons in the hero section
+        </p>
+      </div>
 
-      {items.map((item: any, idx: number) => (
-        <div key={idx} className="mb-4 border p-3 rounded-lg bg-white shadow-sm">
+      <div className="space-y-4">
+        {items.map((item: any, idx: number) => (
+          <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Button Text
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., Visit Ashram"
+                    value={item.name}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].name = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="Button Name"
-            value={item.name}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].name = e.target.value;
-              setItems(copy);
-            }}
-          />
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    URL
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="https://example.com"
+                    value={item.url}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].url = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="URL"
-            value={item.url}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].url = e.target.value;
-              setItems(copy);
-            }}
-          />
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Button Style
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    value={item.variant}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].variant = e.target.value;
+                      setItems(copy);
+                    }}
+                  >
+                    <option value="default">Solid (Default)</option>
+                    <option value="outline">Outline</option>
+                    <option value="ghost">Ghost (Minimal)</option>
+                  </select>
+                </div>
 
-          <select
-            className="border p-2 w-full"
-            value={item.variant}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].variant = e.target.value;
-              setItems(copy);
-            }}
-          >
-            <option value="default">Default</option>
-            <option value="outline">Outline</option>
-            <option value="ghost">Ghost</option>
-          </select>
-
-          <div className="text-right mt-2">
-            <Button
-              variant="ghost"
-              onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
-            >
-              Remove
-            </Button>
-          </div>
-
-        </div>
-      ))}
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️ Remove
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Button
         variant="outline"
+        className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
           setItems([...items, { name: "New Button", url: "https://", variant: "default" }])
         }
@@ -253,47 +337,69 @@ function HeroEditor({ items, setItems }: any) {
 function FooterEditor({ items, setItems }: any) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Footer Links</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Footer Links</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Manage contact links in the footer section
+        </p>
+      </div>
 
-      {items.map((item: any, idx: number) => (
-        <div key={idx} className="mb-4 border p-3 rounded-lg bg-white shadow-sm">
+      <div className="space-y-4">
+        {items.map((item: any, idx: number) => (
+          <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Link Label
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., WhatsApp, Email, Map"
+                    value={item.label}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].label = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="Label (WhatsApp, Email…)"
-            value={item.label}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].label = e.target.value;
-              setItems(copy);
-            }}
-          />
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    URL
+                  </label>
+                  <input
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="tel:+91, mailto:, https://"
+                    value={item.url}
+                    onChange={(e) => {
+                      const copy = [...items];
+                      copy[idx].url = e.target.value;
+                      setItems(copy);
+                    }}
+                  />
+                </div>
 
-          <input
-            className="border p-2 w-full"
-            placeholder="URL"
-            value={item.url}
-            onChange={(e) => {
-              const copy = [...items];
-              copy[idx].url = e.target.value;
-              setItems(copy);
-            }}
-          />
-
-          <div className="text-right mt-2">
-            <Button
-              variant="ghost"
-              onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
-            >
-              Remove
-            </Button>
-          </div>
-
-        </div>
-      ))}
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️ Remove
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Button
         variant="outline"
+        className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
           setItems([...items, { label: "New Link", url: "https://" }])
         }

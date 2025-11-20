@@ -8,8 +8,46 @@ datasource db {
 }
 
 model Admin {
-  id           Int     @id @default(autoincrement())
-  username     String  @unique
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
+}
+
+model MenuItem {
+  id        Int      @id @default(autoincrement())
+  name      String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HeroButton {
+  id        Int      @id @default(autoincrement())
+  name      String
+  url       String
+  variant   String   @default("default")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FooterLink {
+  id        Int      @id @default(autoincrement())
+  label     String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteImage {
+  id        Int      @id @default(autoincrement())
+  category  String   // "hero", "gallery", "event"
+  filename  String
+  path      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

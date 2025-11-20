@@ -1,0 +1,41 @@
+-- CreateTable
+CREATE TABLE "MenuItem" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "HeroButton" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "variant" TEXT NOT NULL DEFAULT 'default',
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "FooterLink" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "label" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "SiteImage" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "category" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);

@@ -6,9 +6,16 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
 
@@ -36,12 +43,54 @@ app.use(
   })
 );
 
-// rate limiter for auth endpoints
+// Serve uploaded images
+const uploadsDir = path.join(__dirname, "../public/images");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/images", express.static(uploadsDir));
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
+
+// Rate limiters
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
   message: "Too many attempts, please slow down.",
 });
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+});
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -65,7 +114,22 @@ function setAuthCookie(res, token) {
   });
 }
 
-// POST /api/auth/login
+// Middleware to verify authentication
+function requireAuth(req, res, next) {
+  const token = req.cookies[COOKIE_NAME];
+  if (!token) return res.status(401).json({ error: "Not authenticated" });
+
+  const payload = verifyToken(token);
+  if (!payload) return res.status(401).json({ error: "Invalid or expired token" });
+
+  req.user = payload;
+  next();
+}
+
+// ============================================
+// AUTH ROUTES
+// ============================================
+
 app.post("/api/auth/login", authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: "Missing credentials" });
@@ -82,13 +146,11 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
   return res.json({ ok: true, username: admin.username });
 });
 
-// POST /api/auth/logout
 app.post("/api/auth/logout", (req, res) => {
   res.clearCookie(COOKIE_NAME);
   return res.json({ ok: true });
 });
 
-// GET /api/auth/me
 app.get("/api/auth/me", async (req, res) => {
   const token = req.cookies[COOKIE_NAME];
   if (!token) return res.status(401).json({ error: "Not authenticated" });
@@ -96,34 +158,168 @@ app.get("/api/auth/me", async (req, res) => {
   const payload = verifyToken(token);
   if (!payload) return res.status(401).json({ error: "Invalid or expired token" });
 
-  // Optionally check user exists
   const admin = await prisma.admin.findUnique({ where: { id: payload.id } });
   if (!admin) return res.status(401).json({ error: "Invalid user" });
 
   return res.json({ ok: true, user: { id: admin.id, username: admin.username } });
 });
 
-// Protected example
-app.get("/api/protected/status", async (req, res) => {
-  const token = req.cookies[COOKIE_NAME];
-  const payload = token ? verifyToken(token) : null;
-  if (!payload) return res.status(401).json({ error: "Not authenticated" });
-  res.json({ ok: true, msg: "You are authenticated", user: payload });
+// ============================================
+// MENU ITEMS ROUTES
+// ============================================
+
+app.get("/api/menu-items", apiLimiter, async (req, res) => {
+  const items = await prisma.menuItem.findMany({ orderBy: { order: "asc" } });
+  res.json(items);
 });
 
-// Register (optional — can be left for admin-only usage)
-app.post("/api/auth/register", authLimiter, async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: "Missing fields" });
+app.post("/api/menu-items", requireAuth, async (req, res) => {
+  const { items } = req.body;
 
-  const exists = await prisma.admin.findUnique({ where: { username } });
-  if (exists) return res.status(400).json({ error: "User exists" });
+  // Delete all existing items
+  await prisma.menuItem.deleteMany();
 
-  const hash = await bcrypt.hash(password, 12);
-  const created = await prisma.admin.create({ data: { username, passwordHash: hash } });
-  return res.json({ ok: true, id: created.id });
+  // Create new items
+  const created = await Promise.all(
+    items.map((item, index) =>
+      prisma.menuItem.create({
+        data: {
+          name: item.name,
+          url: item.url,
+          order: index,
+        },
+      })
+    )
+  );
+
+  res.json(created);
 });
+
+// ============================================
+// HERO BUTTONS ROUTES
+// ============================================
+
+app.get("/api/hero-buttons", apiLimiter, async (req, res) => {
+  const buttons = await prisma.heroButton.findMany({ orderBy: { order: "asc" } });
+  res.json(buttons);
+});
+
+app.post("/api/hero-buttons", requireAuth, async (req, res) => {
+  const { buttons } = req.body;
+
+  await prisma.heroButton.deleteMany();
+
+  const created = await Promise.all(
+    buttons.map((btn, index) =>
+      prisma.heroButton.create({
+        data: {
+          name: btn.name,
+          url: btn.url,
+          variant: btn.variant || "default",
+          order: index,
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// FOOTER LINKS ROUTES
+// ============================================
+
+app.get("/api/footer-links", apiLimiter, async (req, res) => {
+  const links = await prisma.footerLink.findMany({ orderBy: { order: "asc" } });
+  res.json(links);
+});
+
+app.post("/api/footer-links", requireAuth, async (req, res) => {
+  const { links } = req.body;
+
+  await prisma.footerLink.deleteMany();
+
+  const created = await Promise.all(
+    links.map((link, index) =>
+      prisma.footerLink.create({
+        data: {
+          label: link.label,
+          url: link.url,
+          order: index,
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// IMAGE ROUTES
+// ============================================
+
+app.get("/api/images/:category", apiLimiter, async (req, res) => {
+  const { category } = req.params;
+  const images = await prisma.siteImage.findMany({
+    where: { category },
+    orderBy: { order: "asc" },
+  });
+  res.json(images);
+});
+
+app.post("/api/images/upload", requireAuth, upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  const { category, order } = req.body;
+
+  const image = await prisma.siteImage.create({
+    data: {
+      category: category || "general",
+      filename: req.file.filename,
+      path: `/images/${req.file.filename}`,
+      order: parseInt(order) || 0,
+    },
+  });
+
+  res.json(image);
+});
+
+app.delete("/api/images/:id", requireAuth, async (req, res) => {
+  const { id } = req.params;
+
+  const image = await prisma.siteImage.findUnique({ where: { id: parseInt(id) } });
+  if (!image) return res.status(404).json({ error: "Image not found" });
+
+  // Delete file from filesystem
+  const filePath = path.join(uploadsDir, image.filename);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+
+  await prisma.siteImage.delete({ where: { id: parseInt(id) } });
+
+  res.json({ ok: true });
+});
+
+app.post("/api/images/reorder", requireAuth, async (req, res) => {
+  const { images } = req.body; // Array of { id, order }
+
+  await Promise.all(
+    images.map(({ id, order }) =>
+      prisma.siteImage.update({
+        where: { id },
+        data: { order },
+      })
+    )
+  );
+
+  res.json({ ok: true });
+});
+
+// ============================================
+// START SERVER
+// ============================================
 
 app.listen(PORT, () => {
-  console.log(`Auth server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
