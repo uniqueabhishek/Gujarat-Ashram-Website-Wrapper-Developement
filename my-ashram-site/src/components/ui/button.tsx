@@ -7,9 +7,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-amber-600 text-white hover:bg-amber-700",
-        outline: "border border-gray-300 hover:bg-gray-100",
-        ghost: "hover:bg-gray-100",
+        default: "bg-ashram-amber text-white hover:bg-ashram-amber/90 shadow-sm",
+        destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+        outline: "border border-ashram-stone/20 bg-transparent hover:bg-ashram-stone/5 text-ashram-stone",
+        secondary: "bg-ashram-sand text-ashram-stone hover:bg-ashram-sand/80 shadow-sm",
+        ghost: "hover:bg-ashram-stone/10 text-ashram-stone",
+        link: "text-ashram-amber underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",
