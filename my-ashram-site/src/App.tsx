@@ -21,9 +21,26 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
+// TypeScript interfaces
+interface HeroButton {
+  name: string;
+  url: string;
+  variant: string;
+}
+
+interface MenuItem {
+  name: string;
+  url: string;
+}
+
+interface FooterLink {
+  label: string;
+  url: string;
+}
+
 // Load Hero Buttons from localStorage
 function useHeroButtons() {
-  const [buttons] = React.useState(() => {
+  const [buttons] = React.useState<HeroButton[]>(() => {
     const saved = localStorage.getItem("hero_buttons");
     return saved
       ? JSON.parse(saved)
@@ -39,7 +56,7 @@ function useHeroButtons() {
 
 // Load Top Menu from localStorage
 function useMenu() {
-  const [items] = React.useState(() => {
+  const [items] = React.useState<MenuItem[]>(() => {
     const saved = localStorage.getItem("aol_menu_items");
     return saved
       ? JSON.parse(saved)
@@ -54,7 +71,7 @@ function useMenu() {
 
 // Load Footer Links from localStorage
 function useFooterLinks() {
-  const [links] = React.useState(() => {
+  const [links] = React.useState<FooterLink[]>(() => {
     const saved = localStorage.getItem("footer_links");
     return saved
       ? JSON.parse(saved)
@@ -118,7 +135,7 @@ export default function MainSite() {
             Gujarat Ashram
           </div>
           <div className="flex gap-6">
-            {menuItems.map((item: any, i: number) => (
+            {menuItems.map((item: MenuItem, i: number) => (
               <button
                 key={i}
                 className="text-white text-sm font-medium hover:text-amber-200 transition-colors"
@@ -175,12 +192,11 @@ export default function MainSite() {
             </p>
 
             <div className="flex justify-center gap-4 flex-wrap">
-              {heroButtons.map((btn: any, idx: number) => (
+              {heroButtons.map((btn: HeroButton, idx: number) => (
                 <Button
                   key={idx}
-                  variant={btn.variant as any}
+                  variant={btn.variant === "default" || btn.variant === "outline" || btn.variant === "ghost" ? btn.variant : "default"}
                   onClick={() => window.open(btn.url, "_blank")}
-                  size="lg"
                   className="px-8 py-6 text-base shadow-xl hover:scale-105 transition-transform"
                 >
                   {btn.name}
@@ -307,8 +323,8 @@ export default function MainSite() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {footerLinks.map((link: any, idx: number) => {
-                      const icons: any = {
+                    {footerLinks.map((link: FooterLink, idx: number) => {
+                      const icons: Record<string, typeof Phone | typeof Mail | typeof NavigationIcon> = {
                         Call: Phone,
                         WhatsApp: Phone,
                         Email: Mail,
@@ -383,7 +399,7 @@ export default function MainSite() {
             <div>
               <h4 className="font-bold text-lg mb-4">Quick Links</h4>
               <div className="space-y-2">
-                {menuItems.map((item: any, i: number) => (
+                {menuItems.map((item: MenuItem, i: number) => (
                   <button
                     key={i}
                     className="block text-amber-100 hover:text-white text-sm transition-colors"
@@ -398,8 +414,8 @@ export default function MainSite() {
             <div>
               <h4 className="font-bold text-lg mb-4">Contact Us</h4>
               <div className="space-y-3">
-                {footerLinks.map((link: any, idx: number) => (
-
+                {footerLinks.map((link: FooterLink, idx: number) => (
+                  <a
                     key={idx}
                     href={link.url}
                     target="_blank"

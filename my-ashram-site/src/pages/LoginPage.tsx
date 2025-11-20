@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authAPI } from "@/lib/api";
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,10 +15,15 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await authAPI.login(username, password);
-      navigate("/admin");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+      const success = await authAPI.login(password);
+      if (success) {
+        navigate("/admin");
+      } else {
+        setError("Invalid password. Please try again.");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -39,29 +43,14 @@ const LoginPage: React.FC = () => {
             Admin Login
           </CardTitle>
           <p className="text-sm text-gray-500">
-            Enter your credentials to access the admin panel
+            Enter your password to access the admin panel
           </p>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
-              Username
-            </label>
-            <input
-              type="text"
-              placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Password
+              Admin Password
             </label>
             <input
               type="password"

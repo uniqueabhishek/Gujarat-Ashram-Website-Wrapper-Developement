@@ -1,65 +1,81 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Menu, Image, Link } from "lucide-react";
-
-// ─────────────────────────────────────────
-// LocalStorage helpers
-// ─────────────────────────────────────────
-function load(key: string, fallback: any) {
-  const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : fallback;
-}
-
-function save(key: string, value: any) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+import { Card, CardContent } from "@/components/ui/card";
+import { LogOut, Menu, Image as ImageIcon, Link, Upload } from "lucide-react";
+import { authAPI, contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
 
 // ─────────────────────────────────────────
 // Admin Dashboard Component
 // ─────────────────────────────────────────
-const AdminDashboard: React.FC = () => {
+const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [tab, setTab] = React.useState("menu");
+  const [tab, setTab] = useState("menu");
+  const [loading, setLoading] = useState(false);
 
   // MENU ITEMS
-  const [menuItems, setMenuItems] = React.useState(() =>
-    load("aol_menu_items", [
-      { name: "Meditation Hall", url: "https://example.com" },
-      { name: "Programs", url: "https://example.com" },
-    ])
-  );
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   // HERO BUTTONS
-  const [heroButtons, setHeroButtons] = React.useState(() =>
-    load("hero_buttons", [
-      { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-      { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-      { name: "Contact", url: "https://example.com", variant: "ghost" },
-    ])
-  );
+  const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
 
   // FOOTER LINKS
-  const [footerLinks, setFooterLinks] = React.useState(() =>
-    load("footer_links", [
-      { label: "Call", url: "tel:+910000000000" },
-      { label: "WhatsApp", url: "https://wa.me/910000000000" },
-      { label: "Email", url: "mailto:info@example.com" },
-      { label: "Map", url: "https://maps.google.com" },
-    ])
-  );
+  const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
 
-  function handleSave() {
-    save("aol_menu_items", menuItems);
-    save("hero_buttons", heroButtons);
-    save("footer_links", footerLinks);
-    alert("✅ Changes saved successfully! Refresh the main site to see updates.");
+  // IMAGES
+  const [heroImages, setHeroImages] = useState<Image[]>([]);
+  const [galleryImages, setGalleryImages] = useState<Image[]>([]);
+
+  // Load data from backend
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      const [menu, hero, footer, heroImgs, galleryImgs] = await Promise.all([
+        contentAPI.getMenuItems(),
+        contentAPI.getHeroButtons(),
+        contentAPI.getFooterLinks(),
+        imageAPI.getImagesByCategory("hero"),
+        imageAPI.getImagesByCategory("gallery"),
+      ]);
+
+      setMenuItems(menu);
+      setHeroButtons(hero);
+      setFooterLinks(footer);
+      setHeroImages(heroImgs);
+      setGalleryImages(galleryImgs);
+    } catch (error) {
+      console.error("Failed to load data:", error);
+      alert("Failed to load data from server");
+    }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAdmin");
-    navigate("/login");
+  async function handleSave() {
+    setLoading(true);
+    try {
+      await Promise.all([
+        contentAPI.saveMenuItems(menuItems),
+        contentAPI.saveHeroButtons(heroButtons),
+        contentAPI.saveFooterLinks(footerLinks),
+      ]);
+      alert("✅ Changes saved successfully!");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert("Failed to save: " + errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
@@ -90,32 +106,41 @@ const AdminDashboard: React.FC = () => {
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border">
+        <div className="flex gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border flex-wrap">
           <Button
             variant={tab === "menu" ? "default" : "ghost"}
             onClick={() => setTab("menu")}
-            className="flex-1 flex items-center justify-center gap-2"
+            className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
           >
             <Menu className="w-4 h-4" />
-            Menu Items
+            Menu
           </Button>
 
           <Button
             variant={tab === "hero" ? "default" : "ghost"}
             onClick={() => setTab("hero")}
-            className="flex-1 flex items-center justify-center gap-2"
+            className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
           >
-            <Image className="w-4 h-4" />
+            <ImageIcon className="w-4 h-4" />
             Hero Buttons
           </Button>
 
           <Button
             variant={tab === "footer" ? "default" : "ghost"}
             onClick={() => setTab("footer")}
-            className="flex-1 flex items-center justify-center gap-2"
+            className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
           >
             <Link className="w-4 h-4" />
-            Footer Links
+            Footer
+          </Button>
+
+          <Button
+            variant={tab === "images" ? "default" : "ghost"}
+            onClick={() => setTab("images")}
+            className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
+          >
+            <Upload className="w-4 h-4" />
+            Images
           </Button>
         </div>
 
@@ -133,19 +158,29 @@ const AdminDashboard: React.FC = () => {
             {tab === "footer" && (
               <FooterEditor items={footerLinks} setItems={setFooterLinks} />
             )}
+
+            {tab === "images" && (
+              <ImageManager
+                heroImages={heroImages}
+                galleryImages={galleryImages}
+                onRefresh={loadData}
+              />
+            )}
           </CardContent>
         </Card>
 
         {/* Save Button */}
-        <div className="mt-6 flex justify-center">
-          <Button
-            size="lg"
-            onClick={handleSave}
-            className="px-8 bg-orange-500 hover:bg-orange-600"
-          >
-            💾 Save All Changes
-          </Button>
-        </div>
+        {tab !== "images" && (
+          <div className="mt-6 flex justify-center">
+            <Button
+              onClick={handleSave}
+              disabled={loading}
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
+            >
+              {loading ? "Saving..." : "💾 Save All Changes"}
+            </Button>
+          </div>
+        )}
 
       </div>
     </div>
@@ -157,7 +192,12 @@ export default AdminDashboard;
 // ─────────────────────────────────────────
 // MENU EDITOR
 // ─────────────────────────────────────────
-function MenuEditor({ items, setItems }: any) {
+interface EditorProps<T> {
+  items: T[];
+  setItems: (items: T[]) => void;
+}
+
+function MenuEditor({ items, setItems }: EditorProps<MenuItem>) {
   return (
     <div>
       <div className="mb-6">
@@ -168,7 +208,7 @@ function MenuEditor({ items, setItems }: any) {
       </div>
 
       <div className="space-y-4">
-        {items.map((item: any, idx: number) => (
+        {items.map((item: MenuItem, idx: number) => (
           <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -182,7 +222,7 @@ function MenuEditor({ items, setItems }: any) {
                     value={item.name}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].name = e.target.value;
+                      copy[idx] = { ...copy[idx], name: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -198,7 +238,7 @@ function MenuEditor({ items, setItems }: any) {
                     value={item.url}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].url = e.target.value;
+                      copy[idx] = { ...copy[idx], url: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -207,8 +247,7 @@ function MenuEditor({ items, setItems }: any) {
                 <div className="flex justify-end">
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    onClick={() => setItems(items.filter((_: MenuItem, i: number) => i !== idx))}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     🗑️ Remove
@@ -224,7 +263,7 @@ function MenuEditor({ items, setItems }: any) {
         variant="outline"
         className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
-          setItems([...items, { name: "New Item", url: "https://" }])
+          setItems([...items, { id: Date.now().toString(), name: "New Item", url: "https://" }])
         }
       >
         + Add Menu Item
@@ -236,7 +275,7 @@ function MenuEditor({ items, setItems }: any) {
 // ─────────────────────────────────────────
 // HERO BUTTONS EDITOR
 // ─────────────────────────────────────────
-function HeroEditor({ items, setItems }: any) {
+function HeroEditor({ items, setItems }: EditorProps<HeroButton>) {
   return (
     <div>
       <div className="mb-6">
@@ -247,7 +286,7 @@ function HeroEditor({ items, setItems }: any) {
       </div>
 
       <div className="space-y-4">
-        {items.map((item: any, idx: number) => (
+        {items.map((item: HeroButton, idx: number) => (
           <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -261,7 +300,7 @@ function HeroEditor({ items, setItems }: any) {
                     value={item.name}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].name = e.target.value;
+                      copy[idx] = { ...copy[idx], name: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -277,7 +316,7 @@ function HeroEditor({ items, setItems }: any) {
                     value={item.url}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].url = e.target.value;
+                      copy[idx] = { ...copy[idx], url: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -292,21 +331,20 @@ function HeroEditor({ items, setItems }: any) {
                     value={item.variant}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].variant = e.target.value;
+                      copy[idx] = { ...copy[idx], variant: e.target.value };
                       setItems(copy);
                     }}
                   >
-                    <option value="default">Solid (Default)</option>
+                    <option value="default">Primary (Orange)</option>
                     <option value="outline">Outline</option>
-                    <option value="ghost">Ghost (Minimal)</option>
+                    <option value="ghost">Ghost (Transparent)</option>
                   </select>
                 </div>
 
                 <div className="flex justify-end">
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    onClick={() => setItems(items.filter((_: HeroButton, i: number) => i !== idx))}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     🗑️ Remove
@@ -322,10 +360,10 @@ function HeroEditor({ items, setItems }: any) {
         variant="outline"
         className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
-          setItems([...items, { name: "New Button", url: "https://", variant: "default" }])
+          setItems([...items, { id: Date.now().toString(), name: "New Button", url: "https://", variant: "default" }])
         }
       >
-        + Add Button
+        + Add Hero Button
       </Button>
     </div>
   );
@@ -334,32 +372,32 @@ function HeroEditor({ items, setItems }: any) {
 // ─────────────────────────────────────────
 // FOOTER LINKS EDITOR
 // ─────────────────────────────────────────
-function FooterEditor({ items, setItems }: any) {
+function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
   return (
     <div>
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800">Footer Links</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Manage contact links in the footer section
+          Manage contact links that appear in the footer
         </p>
       </div>
 
       <div className="space-y-4">
-        {items.map((item: any, idx: number) => (
+        {items.map((item: FooterLink, idx: number) => (
           <Card key={idx} className="border-2 hover:border-orange-200 transition-colors">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Link Label
+                    Label
                   </label>
                   <input
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="e.g., WhatsApp, Email, Map"
+                    placeholder="e.g., Call, Email, WhatsApp"
                     value={item.label}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].label = e.target.value;
+                      copy[idx] = { ...copy[idx], label: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -371,11 +409,11 @@ function FooterEditor({ items, setItems }: any) {
                   </label>
                   <input
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="tel:+91, mailto:, https://"
+                    placeholder="tel:+919876543210, mailto:email@example.com"
                     value={item.url}
                     onChange={(e) => {
                       const copy = [...items];
-                      copy[idx].url = e.target.value;
+                      copy[idx] = { ...copy[idx], url: e.target.value };
                       setItems(copy);
                     }}
                   />
@@ -384,8 +422,7 @@ function FooterEditor({ items, setItems }: any) {
                 <div className="flex justify-end">
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))}
+                    onClick={() => setItems(items.filter((_: FooterLink, i: number) => i !== idx))}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     🗑️ Remove
@@ -401,11 +438,90 @@ function FooterEditor({ items, setItems }: any) {
         variant="outline"
         className="mt-4 w-full border-dashed border-2 hover:border-orange-500 hover:bg-orange-50"
         onClick={() =>
-          setItems([...items, { label: "New Link", url: "https://" }])
+          setItems([...items, { id: Date.now().toString(), label: "New Link", url: "https://" }])
         }
       >
-        + Add Link
+        + Add Footer Link
       </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// IMAGE MANAGER
+// ─────────────────────────────────────────
+interface ImageManagerProps {
+  heroImages: Image[];
+  galleryImages: Image[];
+  onRefresh: () => void;
+}
+
+function ImageManager({ heroImages, galleryImages, onRefresh }: ImageManagerProps) {
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Image Management</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Upload and manage images for hero slider and gallery
+        </p>
+      </div>
+
+      <div className="space-y-8">
+        {/* Hero Images */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-700 mb-3">Hero Slider Images</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {heroImages.map((image: Image) => (
+              <div key={image.id} className="relative group">
+                <img
+                  src={`http://localhost:4000${image.path}`}
+                  alt={image.filename}
+                  className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                  <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center">
+                    {image.filename}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {heroImages.length === 0 && (
+            <p className="text-gray-400 text-center py-8">No hero images uploaded yet</p>
+          )}
+        </div>
+
+        {/* Gallery Images */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-700 mb-3">Gallery Images</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {galleryImages.map((image: Image) => (
+              <div key={image.id} className="relative group">
+                <img
+                  src={`http://localhost:4000${image.path}`}
+                  alt={image.filename}
+                  className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                  <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center">
+                    {image.filename}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {galleryImages.length === 0 && (
+            <p className="text-gray-400 text-center py-8">No gallery images uploaded yet</p>
+          )}
+        </div>
+
+        <div className="text-center text-sm text-gray-500 mt-6">
+          <p>💡 Image upload functionality requires backend API implementation</p>
+          <Button variant="outline" onClick={onRefresh} className="mt-4">
+            🔄 Refresh Images
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

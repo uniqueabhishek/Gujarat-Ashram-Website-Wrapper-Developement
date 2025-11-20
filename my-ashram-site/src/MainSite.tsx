@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   MapPin,
@@ -21,64 +21,43 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
-// Load Hero Buttons from localStorage
-function useHeroButtons() {
-  const [buttons, setButtons] = React.useState(() => {
-    const saved = localStorage.getItem("hero_buttons");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-          { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-          { name: "Contact", url: "https://example.com", variant: "ghost" }
-        ];
-  });
+import { contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
 
-  return buttons;
-}
-
-// Load Top Menu from localStorage
-function useMenu() {
-  const [items] = React.useState(() => {
-    const saved = localStorage.getItem("aol_menu_items");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          { name: "Meditation Hall", url: "https://example.com" },
-          { name: "Programs", url: "https://example.com" }
-        ];
-  });
-
-  return items;
-}
-
-// Load Footer Links from localStorage
-function useFooterLinks() {
-  const [links] = React.useState(() => {
-    const saved = localStorage.getItem("footer_links");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          { label: "Call", url: "tel:+910000000000" },
-          { label: "WhatsApp", url: "https://wa.me/910000000000" },
-          { label: "Email", url: "mailto:info@example.com" },
-          { label: "Map", url: "https://maps.google.com" }
-        ];
-  });
-
-  return links;
-}
+const API_BASE = "http://localhost:4000";
 
 export default function MainSite() {
-  const heroButtons = useHeroButtons();
-  const menuItems = useMenu();
-  const footerLinks = useFooterLinks();
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
+  const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
+  const [heroImages, setHeroImages] = useState<Image[]>([]);
+  const [galleryImages, setGalleryImages] = useState<Image[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const HERO_IMAGES = [
-    "/images/ashram-hero1.jpg",
-    "/images/ashram-hero2.jpg",
-    "/images/ashram-hero3.jpg"
-  ];
+  useEffect(() => {
+    loadContent();
+  }, []);
+
+  async function loadContent() {
+    try {
+      const [menu, hero, footer, heroImgs, galleryImgs] = await Promise.all([
+        contentAPI.getMenuItems(),
+        contentAPI.getHeroButtons(),
+        contentAPI.getFooterLinks(),
+        imageAPI.getImagesByCategory("hero"),
+        imageAPI.getImagesByCategory("gallery"),
+      ]);
+
+      setMenuItems(menu);
+      setHeroButtons(hero);
+      setFooterLinks(footer);
+      setHeroImages(heroImgs);
+      setGalleryImages(galleryImgs);
+    } catch (error) {
+      console.error("Failed to load content:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const EVENTS = [
     {
@@ -101,12 +80,16 @@ export default function MainSite() {
     }
   ];
 
-  const GALLERY = [
-    "/images/meditation-hall.jpg",
-    "/images/nature-walk.jpg",
-    "/images/group-session.jpg",
-    "/images/accommodation.jpg"
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-amber-50 text-neutral-900">
@@ -118,7 +101,7 @@ export default function MainSite() {
             Gujarat Ashram
           </div>
           <div className="flex gap-6">
-            {menuItems.map((item, i) => (
+            {menuItems.map((item: MenuItem, i: number) => (
               <button
                 key={i}
                 className="text-white text-sm font-medium hover:text-amber-200 transition-colors"
@@ -134,27 +117,31 @@ export default function MainSite() {
       {/* HERO SECTION */}
       <header className="relative overflow-hidden h-[600px]">
         <div className="absolute inset-0">
-          <Swiper
-            modules={[EffectFade, Autoplay, Navigation, Pagination]}
-            effect="fade"
-            autoplay={{ delay: 4000, disableOnInteraction: false }}
-            navigation
-            pagination={{ clickable: true }}
-            loop
-            className="h-full w-full"
-          >
-            {HERO_IMAGES.map((src, i) => (
-              <SwiperSlide key={i}>
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${src})`,
-                    filter: 'brightness(0.7)'
-                  }}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {heroImages.length > 0 ? (
+            <Swiper
+              modules={[EffectFade, Autoplay, Navigation, Pagination]}
+              effect="fade"
+              autoplay={{ delay: 4000, disableOnInteraction: false }}
+              navigation
+              pagination={{ clickable: true }}
+              loop
+              className="h-full w-full"
+            >
+              {heroImages.map((image: Image) => (
+                <SwiperSlide key={image.id}>
+                  <div
+                    className="w-full h-full bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${API_BASE}${image.path})`,
+                      filter: 'brightness(0.7)'
+                    }}
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-orange-400 to-amber-600" />
+          )}
         </div>
 
         {/* HERO TEXT */}
@@ -175,12 +162,11 @@ export default function MainSite() {
             </p>
 
             <div className="flex justify-center gap-4 flex-wrap">
-              {heroButtons.map((btn, idx) => (
+              {heroButtons.map((btn: HeroButton, idx: number) => (
                 <Button
                   key={idx}
-                  variant={btn.variant as any}
+                  variant={btn.variant === "default" || btn.variant === "outline" || btn.variant === "ghost" ? btn.variant : "default"}
                   onClick={() => window.open(btn.url, "_blank")}
-                  size="lg"
                   className="px-8 py-6 text-base shadow-xl hover:scale-105 transition-transform"
                 >
                   {btn.name}
@@ -281,17 +267,23 @@ export default function MainSite() {
                 Our programs are designed for all levels, from beginners to advanced practitioners.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                {GALLERY.map((src, i) => (
-                  <motion.img
-                    key={i}
-                    whileHover={{ scale: 1.05 }}
-                    src={src}
-                    className="rounded-xl shadow-md h-40 w-full object-cover cursor-pointer"
-                    alt={`Gallery ${i + 1}`}
-                  />
-                ))}
-              </div>
+              {galleryImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {galleryImages.slice(0, 4).map((image: Image) => (
+                    <motion.img
+                      key={image.id}
+                      whileHover={{ scale: 1.05 }}
+                      src={`${API_BASE}${image.path}`}
+                      className="rounded-xl shadow-md h-40 w-full object-cover cursor-pointer"
+                      alt={image.filename}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>No gallery images yet</p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -307,14 +299,14 @@ export default function MainSite() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {footerLinks.map((link, idx) => {
-                      const icons = {
+                    {footerLinks.map((link: FooterLink, idx: number) => {
+                      const icons: Record<string, typeof Phone | typeof Mail | typeof NavigationIcon> = {
                         Call: Phone,
                         WhatsApp: Phone,
                         Email: Mail,
                         Map: NavigationIcon
                       };
-                      const Icon = icons[link.label as keyof typeof icons] || NavigationIcon;
+                      const Icon = icons[link.label] || NavigationIcon;
 
                       return (
                         <Button
@@ -383,7 +375,7 @@ export default function MainSite() {
             <div>
               <h4 className="font-bold text-lg mb-4">Quick Links</h4>
               <div className="space-y-2">
-                {menuItems.map((item, i) => (
+                {menuItems.map((item: MenuItem, i: number) => (
                   <button
                     key={i}
                     className="block text-amber-100 hover:text-white text-sm transition-colors"
@@ -398,15 +390,15 @@ export default function MainSite() {
             <div>
               <h4 className="font-bold text-lg mb-4">Contact Us</h4>
               <div className="space-y-3">
-                {footerLinks.map((link, idx) => (
-
+                {footerLinks.map((footerLink: FooterLink, idx: number) => (
+                  <a
                     key={idx}
-                    href={link.url}
+                    href={footerLink.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block text-amber-100 hover:text-white text-sm transition-colors"
                   >
-                    → {link.label}
+                    → {footerLink.label}
                   </a>
                 ))}
               </div>
