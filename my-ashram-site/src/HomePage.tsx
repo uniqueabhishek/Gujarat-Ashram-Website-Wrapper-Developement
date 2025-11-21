@@ -24,12 +24,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
-// ✅ Backend API Integration
-import { contentAPI, imageAPI, MenuItem as APIMenuItem, HeroButton as APIHeroButton, FooterLink as APIFooterLink, Image } from "@/lib/api";
-
-const API_BASE = "http://localhost:4000";
-
-// TypeScript interfaces for local types
+// TypeScript interfaces
 interface HeroButton {
   name: string;
   url: string;
@@ -46,79 +41,61 @@ interface FooterLink {
   url: string;
 }
 
-export default function MainSite() {
-  // ✅ State for backend data
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
-  const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
-  const [heroImages, setHeroImages] = useState<Image[]>([]);
-  const [galleryImages, setGalleryImages] = useState<Image[]>([]);
-  const [loading, setLoading] = useState(true);
+// Load Hero Buttons from localStorage
+function useHeroButtons() {
+  const [buttons] = React.useState<HeroButton[]>(() => {
+    const saved = localStorage.getItem("hero_buttons");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          { name: "Visit Ashram", url: "https://example.com", variant: "default" },
+          { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
+          { name: "Contact", url: "https://example.com", variant: "ghost" }
+        ];
+  });
 
-  // ✅ Original UI state
+  return buttons;
+}
+
+// Load Top Menu from localStorage
+function useMenu() {
+  const [items] = React.useState<MenuItem[]>(() => {
+    const saved = localStorage.getItem("aol_menu_items");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          { name: "Meditation Hall", url: "https://example.com" },
+          { name: "Programs", url: "https://example.com" }
+        ];
+  });
+
+  return items;
+}
+
+// Load Footer Links from localStorage
+function useFooterLinks() {
+  const [links] = React.useState<FooterLink[]>(() => {
+    const saved = localStorage.getItem("footer_links");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          { label: "Call", url: "tel:+910000000000" },
+          { label: "WhatsApp", url: "https://wa.me/910000000000" },
+          { label: "Email", url: "mailto:info@example.com" },
+          { label: "Map", url: "https://maps.google.com" }
+        ];
+  });
+
+  return links;
+}
+
+export default function HomePage() {
+  const heroButtons = useHeroButtons();
+  const menuItems = useMenu();
+  const footerLinks = useFooterLinks();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ✅ Load content from backend
-  useEffect(() => {
-    loadContent();
-  }, []);
-
-  async function loadContent() {
-    try {
-      const [menu, hero, footer, heroImgs, galleryImgs] = await Promise.all([
-        contentAPI.getMenuItems(),
-        contentAPI.getHeroButtons(),
-        contentAPI.getFooterLinks(),
-        imageAPI.getImagesByCategory("hero"),
-        imageAPI.getImagesByCategory("gallery"),
-      ]);
-
-      // Convert API types to local types
-      setMenuItems(menu.length > 0 ? menu.map(item => ({ name: item.name, url: item.url })) : [
-        { name: "Meditation Hall", url: "https://example.com" },
-        { name: "Programs", url: "https://example.com" }
-      ]);
-
-      setHeroButtons(hero.length > 0 ? hero.map(btn => ({ name: btn.name, url: btn.url, variant: btn.variant })) : [
-        { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-        { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-        { name: "Contact", url: "https://example.com", variant: "ghost" }
-      ]);
-
-      setFooterLinks(footer.length > 0 ? footer.map(link => ({ label: link.label, url: link.url })) : [
-        { label: "Call", url: "tel:+910000000000" },
-        { label: "WhatsApp", url: "https://wa.me/910000000000" },
-        { label: "Email", url: "mailto:info@example.com" },
-        { label: "Map", url: "https://maps.google.com" }
-      ]);
-
-      setHeroImages(heroImgs);
-      setGalleryImages(galleryImgs);
-    } catch (error) {
-      console.error("Failed to load content:", error);
-      // Set fallback data
-      setMenuItems([
-        { name: "Meditation Hall", url: "https://example.com" },
-        { name: "Programs", url: "https://example.com" }
-      ]);
-      setHeroButtons([
-        { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-        { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-        { name: "Contact", url: "https://example.com", variant: "ghost" }
-      ]);
-      setFooterLinks([
-        { label: "Call", url: "tel:+910000000000" },
-        { label: "WhatsApp", url: "https://wa.me/910000000000" },
-        { label: "Email", url: "mailto:info@example.com" },
-        { label: "Map", url: "https://maps.google.com" }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ✅ Original scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -127,23 +104,11 @@ export default function MainSite() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ✅ Display images with fallback
-  const HERO_IMAGES = heroImages.length > 0
-    ? heroImages.map(img => `${API_BASE}${img.path}`)
-    : [
-        "/images/ashram-hero1.jpg",
-        "/images/ashram-hero2.jpg",
-        "/images/ashram-hero3.jpg"
-      ];
-
-  const GALLERY = galleryImages.length > 0
-    ? galleryImages.map(img => `${API_BASE}${img.path}`)
-    : [
-        "/images/meditation-hall.jpg",
-        "/images/nature-walk.jpg",
-        "/images/group-session.jpg",
-        "/images/accommodation.jpg"
-      ];
+  const HERO_IMAGES = [
+    "/images/ashram-hero1.jpg",
+    "/images/ashram-hero2.jpg",
+    "/images/ashram-hero3.jpg"
+  ];
 
   const EVENTS = [
     {
@@ -166,17 +131,12 @@ export default function MainSite() {
     }
   ];
 
-  // ✅ Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading Gujarat Ashram...</p>
-        </div>
-      </div>
-    );
-  }
+  const GALLERY = [
+    "/images/meditation-hall.jpg",
+    "/images/nature-walk.jpg",
+    "/images/group-session.jpg",
+    "/images/accommodation.jpg"
+  ];
 
   return (
     <div className="min-h-screen bg-ashram-sand text-ashram-stone selection:bg-ashram-amber selection:text-white">

@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LogOut, Menu, Image as ImageIcon, Link, Upload } from "lucide-react";
-import { authAPI, contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
+import { LogOut, Menu, Image as ImageIcon, Link, Upload, Save, Trash2, X, Lock } from "lucide-react";
+import { contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
 
 // ─────────────────────────────────────────
-// Admin Dashboard Component
+// HARDCODED CREDENTIALS - CHANGE THESE
+// ─────────────────────────────────────────
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin123";
+
+// ─────────────────────────────────────────
+// Admin Dashboard Component with Built-in Auth
 // ─────────────────────────────────────────
 const AdminDashboard = () => {
-  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+
   const [tab, setTab] = useState("menu");
   const [loading, setLoading] = useState(false);
 
@@ -26,11 +34,41 @@ const AdminDashboard = () => {
   const [heroImages, setHeroImages] = useState<Image[]>([]);
   const [galleryImages, setGalleryImages] = useState<Image[]>([]);
 
-  // Load data from backend
+  // New images to upload
+  const [newHeroImages, setNewHeroImages] = useState<Array<{id: number, file: File, url: string, saved: boolean}>>([]);
+  const [newGalleryImages, setNewGalleryImages] = useState<Array<{id: number, file: File, url: string, saved: boolean}>>([]);
+
+  // Check if already authenticated on mount
   useEffect(() => {
-    loadData();
+    const authStatus = sessionStorage.getItem("adminAuth");
+    if (authStatus === "true") {
+      setIsAuthenticated(true);
+      loadData();
+    }
   }, []);
 
+  // Handle login
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (loginForm.username === ADMIN_USERNAME && loginForm.password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem("adminAuth", "true");
+      setLoginError("");
+      loadData();
+    } else {
+      setLoginError("Invalid username or password");
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem("adminAuth");
+    setLoginForm({ username: "", password: "" });
+  };
+
+  // Load data from backend
   async function loadData() {
     try {
       const [menu, hero, footer, heroImgs, galleryImgs] = await Promise.all([
@@ -69,15 +107,164 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleLogout = async () => {
+  // Image file selection handler
+  const handleImageSelect = (category: 'hero' | 'gallery', event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        // Fixed: Added null check for e.target
+        if (e.target && e.target.result) {
+          const newImage = {
+            id: Date.now(),
+            file: file,
+            url: e.target.result as string,
+            saved: false
+          };
+
+          if (category === 'hero') {
+            setNewHeroImages([...newHeroImages, newImage]);
+          } else {
+            setNewGalleryImages([...newGalleryImages, newImage]);
+          }
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+    event.target.value = '';
+  };
+
+  // Save individual image
+  const handleSaveImage = async (category: 'hero' | 'gallery', id: number, file: File) => {
     try {
-      await authAPI.logout();
-      navigate("/login");
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('category', category);
+
+      // Fixed: Check if uploadImage method exists
+      if ('uploadImage' in imageAPI && typeof imageAPI.uploadImage === 'function') {
+        await imageAPI.uploadImage(formData);
+      } else {
+        throw new Error("uploadImage method not implemented in imageAPI");
+      }
+
+      if (category === 'hero') {
+        setNewHeroImages(newHeroImages.map(img =>
+          img.id === id ? { ...img, saved: true } : img
+        ));
+      } else {
+        setNewGalleryImages(newGalleryImages.map(img =>
+          img.id === id ? { ...img, saved: true } : img
+        ));
+      }
+
+      alert("✅ Image saved successfully!");
+      setTimeout(() => loadData(), 500);
+
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("Failed to save image:", error);
+      alert("Failed to save image. Please try again.");
     }
   };
 
+  // Remove new image before saving
+  const handleRemoveNewImage = (category: 'hero' | 'gallery', id: number) => {
+    if (category === 'hero') {
+      setNewHeroImages(newHeroImages.filter(img => img.id !== id));
+    } else {
+      setNewGalleryImages(newGalleryImages.filter(img => img.id !== id));
+    }
+  };
+
+  // Delete saved image from server
+  const handleDeleteSavedImage = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    try {
+      // Fixed: Check if deleteImage method exists
+      if ('deleteImage' in imageAPI && typeof imageAPI.deleteImage === 'function') {
+        await imageAPI.deleteImage(imageId);
+      } else {
+        throw new Error("deleteImage method not implemented in imageAPI");
+      }
+      alert("✅ Image deleted successfully!");
+      loadData();
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+      alert("Failed to delete image. Please try again.");
+    }
+  };
+
+  // ─────────────────────────────────────────
+  // LOGIN SCREEN (Shown when not authenticated)
+  // ─────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0">
+          <CardContent className="p-8">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-10 h-10 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Access</h1>
+              <p className="text-gray-500">Enter credentials to continue</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              {loginError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600 text-center">
+                  {loginError}
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter password"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+              >
+                Login to Dashboard
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // ADMIN DASHBOARD (Shown when authenticated)
+  // ─────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -104,7 +291,6 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-
         {/* Tabs */}
         <div className="flex gap-2 mb-6 bg-white p-2 rounded-lg shadow-sm border flex-wrap">
           <Button
@@ -163,6 +349,12 @@ const AdminDashboard = () => {
               <ImageManager
                 heroImages={heroImages}
                 galleryImages={galleryImages}
+                newHeroImages={newHeroImages}
+                newGalleryImages={newGalleryImages}
+                onImageSelect={handleImageSelect}
+                onSaveImage={handleSaveImage}
+                onRemoveNewImage={handleRemoveNewImage}
+                onDeleteSavedImage={handleDeleteSavedImage}
                 onRefresh={loadData}
               />
             )}
@@ -181,7 +373,6 @@ const AdminDashboard = () => {
             </Button>
           </div>
         )}
-
       </div>
     </div>
   );
@@ -453,10 +644,26 @@ function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
 interface ImageManagerProps {
   heroImages: Image[];
   galleryImages: Image[];
+  newHeroImages: Array<{id: number, file: File, url: string, saved: boolean}>;
+  newGalleryImages: Array<{id: number, file: File, url: string, saved: boolean}>;
+  onImageSelect: (category: 'hero' | 'gallery', event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSaveImage: (category: 'hero' | 'gallery', id: number, file: File) => void;
+  onRemoveNewImage: (category: 'hero' | 'gallery', id: number) => void;
+  onDeleteSavedImage: (imageId: string) => void;
   onRefresh: () => void;
 }
 
-function ImageManager({ heroImages, galleryImages, onRefresh }: ImageManagerProps) {
+function ImageManager({
+  heroImages,
+  galleryImages,
+  newHeroImages,
+  newGalleryImages,
+  onImageSelect,
+  onSaveImage,
+  onRemoveNewImage,
+  onDeleteSavedImage,
+  onRefresh
+}: ImageManagerProps) {
   return (
     <div>
       <div className="mb-6">
@@ -470,23 +677,86 @@ function ImageManager({ heroImages, galleryImages, onRefresh }: ImageManagerProp
         {/* Hero Images */}
         <div>
           <h3 className="text-lg font-medium text-gray-700 mb-3">Hero Slider Images</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {heroImages.map((image: Image) => (
-              <div key={image.id} className="relative group">
-                <img
-                  src={`http://localhost:4000${image.path}`}
-                  alt={image.filename}
-                  className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                  <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center">
-                    {image.filename}
-                  </p>
-                </div>
+
+          {/* Saved Images */}
+          {heroImages.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">Saved Images:</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {heroImages.map((image: Image) => (
+                  <div key={image.id} className="relative group border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <img
+                      src={`http://localhost:4000${image.path}`}
+                      alt={image.filename}
+                      className="w-full h-32 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
+                      <Button
+                        variant="destructive"
+                        onClick={() => onDeleteSavedImage(image.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 p-2 truncate bg-white">
+                      {image.filename}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {heroImages.length === 0 && (
+            </div>
+          )}
+
+          {/* New Images to Upload */}
+          {newHeroImages.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">New Images (Not saved yet):</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {newHeroImages.map((img) => (
+                  <div key={img.id} className="border-2 border-orange-300 rounded-lg p-3">
+                    <div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
+                      <img src={img.url} alt={img.file.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs text-gray-600 truncate mb-2">{img.file.name}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => onSaveImage('hero', img.id, img.file)}
+                        disabled={img.saved}
+                        className={`flex-1 ${img.saved ? 'bg-green-500' : 'bg-orange-500 hover:bg-orange-600'}`}
+                      >
+                        <Save className="w-3 h-3 mr-1" />
+                        {img.saved ? 'Saved' : 'Save'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => onRemoveNewImage('hero', img.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <label className="cursor-pointer inline-block">
+            <div className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 w-fit">
+              <Upload className="w-4 h-4" />
+              Select Hero Image
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => onImageSelect('hero', e)}
+              className="hidden"
+            />
+          </label>
+
+          {heroImages.length === 0 && newHeroImages.length === 0 && (
             <p className="text-gray-400 text-center py-8">No hero images uploaded yet</p>
           )}
         </div>
@@ -494,29 +764,91 @@ function ImageManager({ heroImages, galleryImages, onRefresh }: ImageManagerProp
         {/* Gallery Images */}
         <div>
           <h3 className="text-lg font-medium text-gray-700 mb-3">Gallery Images</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {galleryImages.map((image: Image) => (
-              <div key={image.id} className="relative group">
-                <img
-                  src={`http://localhost:4000${image.path}`}
-                  alt={image.filename}
-                  className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                  <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center">
-                    {image.filename}
-                  </p>
-                </div>
+
+          {/* Saved Images */}
+          {galleryImages.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">Saved Images:</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {galleryImages.map((image: Image) => (
+                  <div key={image.id} className="relative group border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <img
+                      src={`http://localhost:4000${image.path}`}
+                      alt={image.filename}
+                      className="w-full h-32 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
+                      <Button
+                        variant="destructive"
+                        onClick={() => onDeleteSavedImage(image.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 p-2 truncate bg-white">
+                      {image.filename}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {galleryImages.length === 0 && (
+            </div>
+          )}
+
+          {/* New Images to Upload */}
+          {newGalleryImages.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">New Images (Not saved yet):</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {newGalleryImages.map((img) => (
+                  <div key={img.id} className="border-2 border-orange-300 rounded-lg p-3">
+                    <div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
+                      <img src={img.url} alt={img.file.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs text-gray-600 truncate mb-2">{img.file.name}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => onSaveImage('gallery', img.id, img.file)}
+                        disabled={img.saved}
+                        className={`flex-1 ${img.saved ? 'bg-green-500' : 'bg-orange-500 hover:bg-orange-600'}`}
+                      >
+                        <Save className="w-3 h-3 mr-1" />
+                        {img.saved ? 'Saved' : 'Save'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => onRemoveNewImage('gallery', img.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <label className="cursor-pointer inline-block">
+            <div className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 w-fit">
+              <Upload className="w-4 h-4" />
+              Select Gallery Image
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => onImageSelect('gallery', e)}
+              className="hidden"
+            />
+          </label>
+
+          {galleryImages.length === 0 && newGalleryImages.length === 0 && (
             <p className="text-gray-400 text-center py-8">No gallery images uploaded yet</p>
           )}
         </div>
 
-        <div className="text-center text-sm text-gray-500 mt-6">
-          <p>💡 Image upload functionality requires backend API implementation</p>
+        <div className="text-center">
           <Button variant="outline" onClick={onRefresh} className="mt-4">
             🔄 Refresh Images
           </Button>
