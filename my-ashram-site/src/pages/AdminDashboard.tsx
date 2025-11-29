@@ -812,6 +812,7 @@ function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
     { value: "email", label: "Email" },
     { value: "whatsapp", label: "WhatsApp" },
     { value: "address", label: "Address" },
+    { value: "map", label: "Map Embed" },
     { value: "website", label: "Website" },
     { value: "other", label: "Other" },
   ];
@@ -820,8 +821,21 @@ function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
     <div>
       <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
       <p className="text-sm text-gray-600 mb-4">
-        Manage contact details shown in the footer
+        Manage contact details shown in the Location & Contact section
       </p>
+
+      {/* Instructions */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+          💡 How to Configure Contact Information
+        </h3>
+        <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+          <li><strong>Address:</strong> Set type to "Address", add your ashram address in the value field</li>
+          <li><strong>Phone/WhatsApp:</strong> Add phone numbers with proper tel: or WhatsApp URLs</li>
+          <li><strong>Map Embed:</strong> Set type to "Map Embed", paste Google Maps embed URL in the URL field</li>
+          <li className="ml-6 text-xs">To get Google Maps embed: Open Google Maps → Share → Embed a map → Copy HTML → Extract the src URL</li>
+        </ul>
+      </div>
 
       <div className="space-y-3">
         {items.map((item, idx) => (

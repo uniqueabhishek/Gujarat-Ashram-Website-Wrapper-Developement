@@ -31,3 +31,6 @@ Thumbs.db
 # Temp folders
 .cache/
 .tmp/
+
+# images generated during development
+D:\D Desktop\Gujarat_Ashram Website\Gujarat Ashram Website Wrapper Developement\my-ashram-site\public\images

@@ -527,64 +527,183 @@ export default function MainSite() {
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="space-y-8"
+              className="space-y-6"
             >
-              <div className="bg-ashram-sand/50 p-8 rounded-3xl border border-ashram-amber/10">
-                <h3 className="font-serif text-2xl font-bold mb-6 text-ashram-clay flex items-center gap-3">
-                  <MapPin className="w-6 h-6 text-ashram-amber" />
-                  Location & Contact
-                </h3>
+              {/* Modern Location Card */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-ashram-sand/30 to-white shadow-2xl border border-ashram-amber/20">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-ashram-amber/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-100/50 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
-                <div className="space-y-6">
-                  {/* Address Section */}
-                  {contactInfo.filter((info) => info.type === "address").map((address) => (
-                    <div key={address.id} className="flex items-start gap-4">
-                      <div className="mt-1 bg-white p-2 rounded-full shadow-sm">
-                        <NavigationIcon className="w-5 h-5 text-ashram-clay" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-ashram-stone">{address.label}</h4>
-                        <p className="text-ashram-stone/70">{address.value}</p>
-                      </div>
+                <div className="relative p-8">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="p-3 bg-gradient-to-br from-ashram-amber to-orange-400 rounded-2xl shadow-lg">
+                      <MapPin className="w-7 h-7 text-white" />
                     </div>
+                    <div>
+                      <h3 className="font-serif text-3xl font-bold text-ashram-clay">Get in Touch</h3>
+                      <p className="text-ashram-stone/60 text-sm mt-1">We're here to help you on your journey</p>
+                    </div>
+                  </div>
+
+                  {/* Address Section - Enhanced */}
+                  {contactInfo.filter((info) => info.type === "address").map((address) => (
+                    <motion.div
+                      key={address.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      className="mb-8 p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-ashram-amber/10 hover:border-ashram-amber/30 transition-all hover:shadow-lg group"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1 p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl group-hover:scale-110 transition-transform">
+                          <NavigationIcon className="w-6 h-6 text-ashram-amber" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-lg text-ashram-clay mb-1 flex items-center gap-2">
+                            {address.label}
+                            <span className="text-xs px-2 py-1 bg-ashram-amber/10 text-ashram-amber rounded-full font-medium">Primary</span>
+                          </h4>
+                          <p className="text-ashram-stone leading-relaxed">{address.value}</p>
+                          {address.url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-3 text-ashram-amber hover:text-ashram-clay hover:bg-ashram-amber/10 gap-2"
+                              onClick={() => window.open(address.url, "_blank")}
+                            >
+                              <NavigationIcon className="w-4 h-4" />
+                              Get Directions
+                              <ArrowRight className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
                   ))}
 
-                  {/* Contact Buttons */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                  {/* Contact Methods Grid - Modern Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {contactInfo
-                      .filter((info) => info.type !== "address")
+                      .filter((info) => info.type !== "address" && info.type !== "map")
                       .map((contact: ContactInfo, idx: number) => {
-                        const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-                          phone: Phone,
-                          whatsapp: Phone,
-                          email: Mail,
-                          website: NavigationIcon,
-                          other: NavigationIcon
+                        const iconConfig: Record<string, {
+                          Icon: React.ComponentType<{ className?: string }>,
+                          gradient: string,
+                          bgGradient: string
+                        }> = {
+                          phone: {
+                            Icon: Phone,
+                            gradient: "from-blue-500 to-blue-600",
+                            bgGradient: "from-blue-50 to-blue-100"
+                          },
+                          whatsapp: {
+                            Icon: Phone,
+                            gradient: "from-green-500 to-green-600",
+                            bgGradient: "from-green-50 to-green-100"
+                          },
+                          email: {
+                            Icon: Mail,
+                            gradient: "from-purple-500 to-purple-600",
+                            bgGradient: "from-purple-50 to-purple-100"
+                          },
+                          website: {
+                            Icon: NavigationIcon,
+                            gradient: "from-orange-500 to-orange-600",
+                            bgGradient: "from-orange-50 to-orange-100"
+                          },
+                          other: {
+                            Icon: NavigationIcon,
+                            gradient: "from-gray-500 to-gray-600",
+                            bgGradient: "from-gray-50 to-gray-100"
+                          }
                         };
-                        const Icon = icons[contact.type] || NavigationIcon;
+
+                        const config = iconConfig[contact.type] || iconConfig.other;
+                        const Icon = config.Icon;
 
                         return (
-                          <Button
+                          <motion.div
                             key={idx}
-                            variant="outline"
-                            className="flex items-center justify-start gap-3 h-auto py-3 px-4 bg-white border-ashram-amber/20 hover:border-ashram-amber hover:bg-ashram-amber/5 text-ashram-clay"
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: idx * 0.1 }}
+                            whileHover={{ y: -4, scale: 1.02 }}
+                            className="group cursor-pointer"
                             onClick={() => window.open(contact.url || "#", "_blank")}
                           >
-                            <Icon className="w-4 h-4 text-ashram-amber" />
-                            {contact.label}
-                          </Button>
+                            <div className="h-full p-5 bg-white rounded-xl border-2 border-transparent hover:border-ashram-amber/30 shadow-md hover:shadow-xl transition-all">
+                              <div className="flex items-center gap-4">
+                                <div className={`p-3 bg-gradient-to-br ${config.bgGradient} rounded-xl group-hover:scale-110 transition-transform`}>
+                                  <Icon className={`w-5 h-5 ${contact.type === 'whatsapp' ? 'text-green-600' : contact.type === 'phone' ? 'text-blue-600' : contact.type === 'email' ? 'text-purple-600' : 'text-orange-600'}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-ashram-stone/60 uppercase tracking-wider mb-1">
+                                    {contact.label}
+                                  </p>
+                                  <p className="font-medium text-ashram-clay truncate group-hover:text-ashram-amber transition-colors">
+                                    {contact.value}
+                                  </p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-ashram-stone/30 group-hover:text-ashram-amber group-hover:translate-x-1 transition-all" />
+                              </div>
+                            </div>
+                          </motion.div>
                         );
                       })}
                   </div>
                 </div>
               </div>
 
-              <div className="relative h-64 rounded-3xl overflow-hidden shadow-lg">
-                 {/* Placeholder for map */}
-                 <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-                    <p className="text-gray-500">Google Map Embed</p>
-                 </div>
-              </div>
+              {/* Google Maps Embed - Modern Frame */}
+              {(() => {
+                const mapInfo = contactInfo.find((info) => info.type === "map");
+                const mapUrl = mapInfo?.url || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3671.123456789!2d72.123456!3d23.123456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjPCsDA3JzI0LjQiTiA3MsKwMDcnMjQuNCJF!5e0!3m2!1sen!2sin!4v1234567890";
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="relative group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-ashram-amber to-orange-400 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                    <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white">
+                      <div className="aspect-[16/10] bg-gradient-to-br from-gray-100 to-gray-200">
+                        {mapUrl.includes('google.com/maps') ? (
+                          <iframe
+                            src={mapUrl}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-center p-8">
+                            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-2xl mb-4">
+                              <MapPin className="w-12 h-12 text-ashram-amber mx-auto" />
+                            </div>
+                            <p className="text-ashram-stone font-medium mb-2">Map View</p>
+                            <p className="text-sm text-ashram-stone/60 max-w-xs">
+                              Configure Google Maps embed URL in Admin Dashboard → Contact section
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {/* Map Overlay Label */}
+                      <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-sm font-semibold text-ashram-clay mb-1">📍 Find Us Here</p>
+                        <p className="text-xs text-ashram-stone/70">Click to explore the map and get directions</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })()}
             </motion.div>
           </div>
         </section>
