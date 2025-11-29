@@ -655,65 +655,173 @@ function EventsEditor({ items, setItems }: EditorProps<Event>) {
 function AboutEditor({ content, setContent }: AboutEditorProps) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">About Section Content</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Edit the main content for the About section
+      <h2 className="text-xl font-semibold mb-4">About & Text Content</h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Manage all text content across the website - Hero section, About section, and Footer
       </p>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Title</label>
-          <input
-            className="w-full px-3 py-2 border rounded"
-            placeholder="Welcome to Gujarat Ashram"
-            value={content.title}
-            onChange={(e) =>
-              setContent({ ...content, title: e.target.value })
-            }
-          />
-        </div>
+      {/* SECTION 1: Hero Section */}
+      <div className="mb-8 p-6 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg">
+        <h3 className="font-bold text-lg text-orange-900 mb-2 flex items-center gap-2">
+          1️⃣ Hero Section (Top of Homepage)
+        </h3>
+        <p className="text-sm text-orange-700 mb-4">
+          This appears at the very top of your homepage with the background image
+        </p>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Subtitle (optional)
-          </label>
-          <input
-            className="w-full px-3 py-2 border rounded"
-            placeholder="A Sanctuary for Inner Peace"
-            value={content.subtitle || ""}
-            onChange={(e) =>
-              setContent({ ...content, subtitle: e.target.value })
-            }
-          />
-        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Main Title (Line 1)
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Art of Living"
+              value={content.heroTitle}
+              onChange={(e) =>
+                setContent({ ...content, heroTitle: e.target.value })
+              }
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Main Description
-          </label>
-          <textarea
-            className="w-full px-3 py-2 border rounded"
-            placeholder="Enter the main about text..."
-            rows={6}
-            value={content.description}
-            onChange={(e) =>
-              setContent({ ...content, description: e.target.value })
-            }
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Subtitle (Line 2 - shown in amber color)
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Gujarat Ashram"
+              value={content.heroSubtitle}
+              onChange={(e) =>
+                setContent({ ...content, heroSubtitle: e.target.value })
+              }
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Video URL (optional)
-          </label>
-          <input
-            className="w-full px-3 py-2 border rounded"
-            placeholder="https://youtube.com/..."
-            value={content.videoUrl || ""}
-            onChange={(e) =>
-              setContent({ ...content, videoUrl: e.target.value })
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Description (Below title)
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Discover a sanctuary for inner peace..."
+              rows={2}
+              value={content.heroDescription}
+              onChange={(e) =>
+                setContent({ ...content, heroDescription: e.target.value })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 2: About / Why Visit Section */}
+      <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+        <h3 className="font-bold text-lg text-green-900 mb-2 flex items-center gap-2">
+          2️⃣ About Section ("Why Visit")
+        </h3>
+        <p className="text-sm text-green-700 mb-4">
+          This appears in the middle of the homepage next to the gallery images
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Small Badge Text (Optional - shown in amber)
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Discover"
+              value={content.aboutBadge || ""}
+              onChange={(e) =>
+                setContent({ ...content, aboutBadge: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Section Title
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Why Visit the Gujarat Ashram?"
+              value={content.aboutTitle}
+              onChange={(e) =>
+                setContent({ ...content, aboutTitle: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Description
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Experience a calm environment filled with wisdom..."
+              rows={4}
+              value={content.aboutDescription}
+              onChange={(e) =>
+                setContent({ ...content, aboutDescription: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Video URL (Optional)
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="https://youtube.com/..."
+              value={content.videoUrl || ""}
+              onChange={(e) =>
+                setContent({ ...content, videoUrl: e.target.value })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: Footer Section */}
+      <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <h3 className="font-bold text-lg text-blue-900 mb-2 flex items-center gap-2">
+          3️⃣ Footer Section (Bottom of Page)
+        </h3>
+        <p className="text-sm text-blue-700 mb-4">
+          This appears at the bottom of every page in the footer area
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Footer Title
+            </label>
+            <input
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="Gujarat Ashram"
+              value={content.footerTitle}
+              onChange={(e) =>
+                setContent({ ...content, footerTitle: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Footer Description
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border rounded bg-white"
+              placeholder="A sanctuary for peace, meditation, and spiritual growth..."
+              rows={3}
+              value={content.footerDescription}
+              onChange={(e) =>
+                setContent({ ...content, footerDescription: e.target.value })
+              }
+            />
+          </div>
         </div>
       </div>
     </div>

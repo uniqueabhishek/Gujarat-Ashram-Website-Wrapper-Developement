@@ -50,10 +50,20 @@ export interface Event {
 
 export interface AboutContent {
   id: string;
-  title: string;
-  subtitle?: string;
-  description: string;
-  videoUrl?: string;
+  // Hero Section (Top of page)
+  heroTitle: string;           // "Art of Living"
+  heroSubtitle: string;        // "Gujarat Ashram"
+  heroDescription: string;     // "Discover a sanctuary..."
+
+  // About Section (Middle - "Why Visit")
+  aboutBadge?: string;         // "Discover"
+  aboutTitle: string;          // "Why Visit the Gujarat Ashram?"
+  aboutDescription: string;    // "Experience a calm environment..."
+  videoUrl?: string;           // Optional video URL
+
+  // Footer Section
+  footerTitle: string;         // "Gujarat Ashram" (footer)
+  footerDescription: string;   // "A sanctuary for peace..."
 }
 
 export interface InfoCard {
@@ -70,6 +80,26 @@ export interface ContactInfo {
   label: string;
   value: string;
   url?: string;
+  isActive?: boolean;
+}
+
+export interface FooterSettings {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  isActive?: boolean;
+}
+
+export interface FooterButton {
+  id: string;
+  label: string;
+  url: string;
   isActive?: boolean;
 }
 
@@ -198,7 +228,7 @@ export const eventsAPI = {
 
   async saveEvents(events: Event[]): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE}/api/content/events`, {
+      const response = await fetch(`${API_BASE}/api/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -227,10 +257,14 @@ export const aboutAPI = {
       // Return default content if API fails
       return {
         id: "default",
-        title: "Welcome to Gujarat Ashram",
-        subtitle: "A Sanctuary for Inner Peace",
-        description:
-          "Gujarat Ashram has been a beacon of spiritual learning and holistic wellness for over 50 years. Nestled in serene natural surroundings, our ashram offers a perfect environment for meditation, yoga, and self-discovery.",
+        heroTitle: "Art of Living",
+        heroSubtitle: "Gujarat Ashram",
+        heroDescription: "Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace.",
+        aboutBadge: "Discover",
+        aboutTitle: "Why Visit the Gujarat Ashram?",
+        aboutDescription: "Experience a calm environment filled with wisdom and transformative meditation practices. Our programs are designed for all levels, from beginners to advanced practitioners, providing a path to inner silence and outer dynamism.",
+        footerTitle: "Gujarat Ashram",
+        footerDescription: "A sanctuary for peace, meditation, and spiritual growth in the heart of Gujarat. Open to all, serving all.",
       };
     }
   },
@@ -468,6 +502,93 @@ export const authAPI = {
     } catch (error) {
       console.error("Error fetching user info:", error);
       return { authenticated: false };
+    }
+  },
+};
+
+// ============================================
+// FOOTER API
+// ============================================
+
+export const footerAPI = {
+  // Footer Settings (title & description)
+  async getFooterSettings(): Promise<FooterSettings | null> {
+    try {
+      const response = await fetch(`${API_BASE}/api/footer-settings`);
+      if (!response.ok) throw new Error("Failed to fetch footer settings");
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching footer settings:", error);
+      return null;
+    }
+  },
+
+  async saveFooterSettings(settings: FooterSettings): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/api/footer-settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(settings),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Error saving footer settings:", error);
+      return false;
+    }
+  },
+
+  // Social Links
+  async getSocialLinks(): Promise<SocialLink[]> {
+    try {
+      const response = await fetch(`${API_BASE}/api/social-links`);
+      if (!response.ok) throw new Error("Failed to fetch social links");
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching social links:", error);
+      return [];
+    }
+  },
+
+  async saveSocialLinks(links: SocialLink[]): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/api/social-links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(links),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Error saving social links:", error);
+      return false;
+    }
+  },
+
+  // Footer Buttons
+  async getFooterButtons(): Promise<FooterButton[]> {
+    try {
+      const response = await fetch(`${API_BASE}/api/footer-buttons`);
+      if (!response.ok) throw new Error("Failed to fetch footer buttons");
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching footer buttons:", error);
+      return [];
+    }
+  },
+
+  async saveFooterButtons(buttons: FooterButton[]): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/api/footer-buttons`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(buttons),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Error saving footer buttons:", error);
+      return false;
     }
   },
 };

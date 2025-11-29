@@ -25,7 +25,7 @@ import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
 // ✅ Backend API Integration
-import { contentAPI, imageAPI, contactAPI, infoCardsAPI, MenuItem, HeroButton, FooterLink, Image, ContactInfo, InfoCard } from "@/lib/api";
+import { contentAPI, imageAPI, contactAPI, infoCardsAPI, eventsAPI, aboutAPI, MenuItem, HeroButton, FooterLink, Image, ContactInfo, InfoCard, Event, AboutContent } from "@/lib/api";
 import { getIconComponent } from "@/lib/iconMapping";
 import { getCardColors } from "@/lib/cardColors";
 
@@ -40,6 +40,8 @@ export default function MainSite() {
   const [heroImages, setHeroImages] = useState<Image[]>([]);
   const [galleryImages, setGalleryImages] = useState<Image[]>([]);
   const [infoCards, setInfoCards] = useState<InfoCard[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [aboutContent, setAboutContent] = useState<AboutContent | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ✅ Original UI state
@@ -54,7 +56,7 @@ export default function MainSite() {
   async function loadContent() {
     try {
       console.log("MainSite: Loading content from backend...");
-      const [menu, hero, footer, contact, heroImgs, galleryImgs, cards] = await Promise.all([
+      const [menu, hero, footer, contact, heroImgs, galleryImgs, cards, eventsData, about] = await Promise.all([
         contentAPI.getMenuItems(),
         contentAPI.getHeroButtons(),
         contentAPI.getFooterLinks(),
@@ -62,6 +64,8 @@ export default function MainSite() {
         imageAPI.getImagesByCategory("hero"),
         imageAPI.getImagesByCategory("gallery"),
         infoCardsAPI.getInfoCards(),
+        eventsAPI.getEvents(),
+        aboutAPI.getAboutContent(),
       ]);
 
       console.log("MainSite: Hero images received:", heroImgs);
@@ -97,8 +101,12 @@ export default function MainSite() {
       setHeroImages(heroImgs);
       setGalleryImages(galleryImgs);
       setInfoCards(cards);
+      setEvents(eventsData);
+      setAboutContent(about);
       console.log("MainSite: Content loaded successfully");
       console.log("MainSite: Info cards received:", cards);
+      console.log("MainSite: Events received:", eventsData);
+      console.log("MainSite: About content received:", about);
     } catch (error) {
       console.error("Failed to load content:", error);
       // Set fallback data
@@ -166,27 +174,6 @@ export default function MainSite() {
 
   console.log("MainSite: HERO_IMAGES array:", HERO_IMAGES);
   console.log("MainSite: Using fallback?", heroImages.length === 0);
-
-  const EVENTS = [
-    {
-      id: "e1",
-      title: "Happiness Program — Weekend Batch",
-      date: "Dec 5 - Dec 7, 2025",
-      desc: "A weekend immersion in breathing and mindfulness."
-    },
-    {
-      id: "e2",
-      title: "Sudarshan Kriya Workshop",
-      date: "Jan 10, 2026",
-      desc: "Guided practice with certified instructors."
-    },
-    {
-      id: "e3",
-      title: "Silence Retreat",
-      date: "Feb 14 - Feb 20, 2026",
-      desc: "Deep reflective retreat in nature."
-    }
-  ];
 
   // ✅ Loading state
   if (loading) {
@@ -376,8 +363,8 @@ export default function MainSite() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 1 }}
             >
-              Art of Living <br />
-              <span className="italic text-ashram-amber">Gujarat Ashram</span>
+              {aboutContent?.heroTitle || "Art of Living"} <br />
+              <span className="italic text-ashram-amber">{aboutContent?.heroSubtitle || "Gujarat Ashram"}</span>
             </motion.h1>
 
             <motion.p
@@ -386,7 +373,7 @@ export default function MainSite() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
             >
-              Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace.
+              {aboutContent?.heroDescription || "Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace."}
             </motion.p>
 
             <motion.div
@@ -478,14 +465,14 @@ export default function MainSite() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <span className="text-ashram-amber font-medium tracking-wider uppercase text-sm">Discover</span>
+              <span className="text-ashram-amber font-medium tracking-wider uppercase text-sm">
+                {aboutContent?.aboutBadge || "Discover"}
+              </span>
               <h3 className="font-serif text-4xl md:text-5xl font-bold text-ashram-clay mt-2 mb-6">
-                Why Visit the <br />Gujarat Ashram?
+                {aboutContent?.aboutTitle || "Why Visit the Gujarat Ashram?"}
               </h3>
               <p className="text-ashram-stone/70 text-lg leading-relaxed mb-8">
-                Experience a calm environment filled with wisdom and transformative meditation practices.
-                Our programs are designed for all levels, from beginners to advanced practitioners, providing
-                a path to inner silence and outer dynamism.
+                {aboutContent?.aboutDescription || "Experience a calm environment filled with wisdom and transformative meditation practices. Our programs are designed for all levels, from beginners to advanced practitioners, providing a path to inner silence and outer dynamism."}
               </p>
 
               <div className="grid grid-cols-2 gap-4">
@@ -707,7 +694,7 @@ export default function MainSite() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {EVENTS.map((ev) => (
+              {events.map((ev) => (
                 <motion.div
                   key={ev.id}
                   whileHover={{ y: -8 }}
@@ -724,11 +711,14 @@ export default function MainSite() {
                         {ev.title}
                       </h4>
                       <p className="text-ashram-stone/70 mb-6 leading-relaxed">
-                        {ev.desc}
+                        {ev.description}
                       </p>
 
-                      <Button className="w-full bg-ashram-stone text-white hover:bg-ashram-clay transition-colors">
-                        Register Now
+                      <Button
+                        className="w-full bg-ashram-stone text-white hover:bg-ashram-clay transition-colors"
+                        onClick={() => ev.buttonUrl && window.open(ev.buttonUrl, '_blank')}
+                      >
+                        {ev.buttonText || "Register Now"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -745,10 +735,11 @@ export default function MainSite() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
 
             <div className="col-span-1 md:col-span-2">
-              <h4 className="font-serif font-bold text-3xl mb-6 text-white">Gujarat Ashram</h4>
+              <h4 className="font-serif font-bold text-3xl mb-6 text-white">
+                {aboutContent?.footerTitle || "Gujarat Ashram"}
+              </h4>
               <p className="text-ashram-sand/70 text-lg leading-relaxed max-w-md mb-8">
-                A sanctuary for peace, meditation, and spiritual growth in the heart of Gujarat.
-                Open to all, serving all.
+                {aboutContent?.footerDescription || "A sanctuary for peace, meditation, and spiritual growth in the heart of Gujarat. Open to all, serving all."}
               </p>
               <div className="flex gap-4">
                 {/* Social Icons placeholders */}

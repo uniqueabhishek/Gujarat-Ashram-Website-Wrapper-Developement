@@ -307,9 +307,18 @@ app.get("/api/about", apiLimiter, async (req, res) => {
   if (!about) {
     return res.json({
       id: "default",
-      title: "Welcome to Gujarat Ashram",
-      subtitle: "A Sanctuary for Inner Peace",
-      description: "Gujarat Ashram has been a beacon of spiritual learning.",
+      // Hero Section
+      heroTitle: "Art of Living",
+      heroSubtitle: "Gujarat Ashram",
+      heroDescription: "Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace.",
+      // About Section
+      aboutBadge: "Discover",
+      aboutTitle: "Why Visit the Gujarat Ashram?",
+      aboutDescription: "Experience a calm environment filled with wisdom and transformative meditation practices.",
+      videoUrl: "",
+      // Footer Section
+      footerTitle: "Gujarat Ashram",
+      footerDescription: "A sanctuary for peace, meditation, and spiritual growth in the heart of Gujarat. Open to all, serving all.",
     });
   }
   res.json(about);
@@ -324,10 +333,18 @@ app.post("/api/about", requireAuth, async (req, res) => {
     // Create new about content
     const created = await prisma.aboutContent.create({
       data: {
-        title: content.title,
-        subtitle: content.subtitle || "",
-        description: content.description,
+        // Hero Section
+        heroTitle: content.heroTitle,
+        heroSubtitle: content.heroSubtitle,
+        heroDescription: content.heroDescription,
+        // About Section
+        aboutBadge: content.aboutBadge || "",
+        aboutTitle: content.aboutTitle,
+        aboutDescription: content.aboutDescription,
         videoUrl: content.videoUrl || "",
+        // Footer Section
+        footerTitle: content.footerTitle,
+        footerDescription: content.footerDescription,
       },
     });
 
@@ -468,6 +485,91 @@ app.post("/api/images/reorder", requireAuth, async (req, res) => {
   );
 
   res.json({ ok: true });
+});
+
+// ============================================
+// FOOTER SETTINGS ROUTES
+// ============================================
+
+app.get("/api/footer-settings", apiLimiter, async (req, res) => {
+  const settings = await prisma.footerSettings.findFirst();
+  res.json(settings);
+});
+
+app.post("/api/footer-settings", requireAuth, async (req, res) => {
+  const { title, description } = req.body;
+
+  // Delete existing and create new (single record table)
+  await prisma.footerSettings.deleteMany();
+
+  const settings = await prisma.footerSettings.create({
+    data: {
+      title,
+      description,
+    },
+  });
+
+  res.json(settings);
+});
+
+// ============================================
+// SOCIAL LINKS ROUTES
+// ============================================
+
+app.get("/api/social-links", apiLimiter, async (req, res) => {
+  const links = await prisma.socialLink.findMany({ orderBy: { order: "asc" } });
+  res.json(links);
+});
+
+app.post("/api/social-links", requireAuth, async (req, res) => {
+  const links = req.body;
+
+  await prisma.socialLink.deleteMany();
+
+  const created = await Promise.all(
+    links.map((link, index) =>
+      prisma.socialLink.create({
+        data: {
+          platform: link.platform,
+          url: link.url,
+          order: index,
+          isActive: link.isActive !== false,
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// FOOTER BUTTONS ROUTES
+// ============================================
+
+app.get("/api/footer-buttons", apiLimiter, async (req, res) => {
+  const buttons = await prisma.footerButton.findMany({ orderBy: { order: "asc" } });
+  res.json(buttons);
+});
+
+app.post("/api/footer-buttons", requireAuth, async (req, res) => {
+  const buttons = req.body;
+
+  await prisma.footerButton.deleteMany();
+
+  const created = await Promise.all(
+    buttons.map((button, index) =>
+      prisma.footerButton.create({
+        data: {
+          label: button.label,
+          url: button.url,
+          order: index,
+          isActive: button.isActive !== false,
+        },
+      })
+    )
+  );
+
+  res.json(created);
 });
 
 // ============================================
