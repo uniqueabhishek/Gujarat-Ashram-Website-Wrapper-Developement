@@ -174,7 +174,7 @@ app.get("/api/menu-items", apiLimiter, async (req, res) => {
 });
 
 app.post("/api/menu-items", requireAuth, async (req, res) => {
-  const { items } = req.body;
+  const items = req.body;
 
   // Delete all existing items
   await prisma.menuItem.deleteMany();
@@ -186,6 +186,8 @@ app.post("/api/menu-items", requireAuth, async (req, res) => {
         data: {
           name: item.name,
           url: item.url,
+          isSpecial: item.isSpecial || false,      // ✅ FIXED: Added isSpecial
+          variant: item.variant || "default",      // ✅ FIXED: Added variant
           order: index,
         },
       })
@@ -205,7 +207,7 @@ app.get("/api/hero-buttons", apiLimiter, async (req, res) => {
 });
 
 app.post("/api/hero-buttons", requireAuth, async (req, res) => {
-  const { buttons } = req.body;
+  const buttons = req.body;
 
   await prisma.heroButton.deleteMany();
 
@@ -215,7 +217,7 @@ app.post("/api/hero-buttons", requireAuth, async (req, res) => {
         data: {
           name: btn.name,
           url: btn.url,
-          variant: btn.variant || "default",
+          variant: btn.variant || "default",    // ✅ FIXED: Changed 'item' to 'btn', removed isSpecial
           order: index,
         },
       })
@@ -235,7 +237,7 @@ app.get("/api/footer-links", apiLimiter, async (req, res) => {
 });
 
 app.post("/api/footer-links", requireAuth, async (req, res) => {
-  const { links } = req.body;
+  const links = req.body;
 
   await prisma.footerLink.deleteMany();
 
@@ -245,6 +247,134 @@ app.post("/api/footer-links", requireAuth, async (req, res) => {
         data: {
           label: link.label,
           url: link.url,
+          order: index,
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// EVENTS ROUTES
+// ============================================
+
+app.get("/api/events", apiLimiter, async (req, res) => {
+  const events = await prisma.event.findMany({ orderBy: { createdAt: "desc" } });
+  res.json(events);
+});
+
+app.post("/api/events", requireAuth, async (req, res) => {
+  const events = req.body;
+
+  await prisma.event.deleteMany();
+
+  const created = await Promise.all(
+    events.map((event) =>
+      prisma.event.create({
+        data: {
+          title: event.title,
+          date: event.date,
+          description: event.description,
+          buttonText: event.buttonText || "Register Now",
+          buttonUrl: event.buttonUrl || "",
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// ABOUT ROUTES
+// ============================================
+
+app.get("/api/about", apiLimiter, async (req, res) => {
+  const about = await prisma.aboutContent.findFirst();
+  if (!about) {
+    return res.json({
+      id: "default",
+      title: "Welcome to Gujarat Ashram",
+      subtitle: "A Sanctuary for Inner Peace",
+      description: "Gujarat Ashram has been a beacon of spiritual learning.",
+    });
+  }
+  res.json(about);
+});
+
+app.post("/api/about", requireAuth, async (req, res) => {
+    const content = req.body;
+
+    // Delete existing about content
+    await prisma.aboutContent.deleteMany();
+
+    // Create new about content
+    const created = await prisma.aboutContent.create({
+      data: {
+        title: content.title,
+        subtitle: content.subtitle || "",
+        description: content.description,
+        videoUrl: content.videoUrl || "",
+      },
+    });
+
+    res.json(created);
+  });
+
+// ============================================
+// INFO CARDS ROUTES
+// ============================================
+
+app.get("/api/info-cards", apiLimiter, async (req, res) => {
+  const cards = await prisma.infoCard.findMany({ orderBy: { order: "asc" } });
+  res.json(cards);
+});
+
+app.post("/api/info-cards", requireAuth, async (req, res) => {
+  const cards = req.body;
+
+  await prisma.infoCard.deleteMany();
+
+  const created = await Promise.all(
+    cards.map((card, index) =>
+      prisma.infoCard.create({
+        data: {
+          title: card.title,
+          description: card.description,
+          icon: card.icon,
+          order: index,
+        },
+      })
+    )
+  );
+
+  res.json(created);
+});
+
+// ============================================
+// CONTACT ROUTES
+// ============================================
+
+app.get("/api/contact", apiLimiter, async (req, res) => {
+  const contacts = await prisma.contactInfo.findMany({ orderBy: { order: "asc" } });
+  res.json(contacts);
+});
+
+app.post("/api/contact", requireAuth, async (req, res) => {
+  const contacts = req.body;
+
+  await prisma.contactInfo.deleteMany();
+
+  const created = await Promise.all(
+    contacts.map((contact, index) =>
+      prisma.contactInfo.create({
+        data: {
+          type: contact.type,
+          label: contact.label,
+          value: contact.value,
+          url: contact.url || "",
           order: index,
         },
       })

@@ -25,26 +25,9 @@ import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
 // ✅ Backend API Integration
-import { contentAPI, imageAPI, MenuItem as APIMenuItem, HeroButton as APIHeroButton, FooterLink as APIFooterLink, Image } from "@/lib/api";
+import { contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
 
 const API_BASE = "http://localhost:4000";
-
-// TypeScript interfaces for local types
-interface HeroButton {
-  name: string;
-  url: string;
-  variant: string;
-}
-
-interface MenuItem {
-  name: string;
-  url: string;
-}
-
-interface FooterLink {
-  label: string;
-  url: string;
-}
 
 export default function MainSite() {
   // ✅ State for backend data
@@ -74,23 +57,23 @@ export default function MainSite() {
         imageAPI.getImagesByCategory("gallery"),
       ]);
 
-      // Convert API types to local types
-      setMenuItems(menu.length > 0 ? menu.map(item => ({ name: item.name, url: item.url })) : [
-        { name: "Meditation Hall", url: "https://example.com" },
-        { name: "Programs", url: "https://example.com" }
+      // ✅ SIMPLIFIED: API already returns correct type
+      setMenuItems(menu.length > 0 ? menu : [
+        { id: "1", name: "Meditation Hall", url: "https://example.com", isSpecial: false, variant: "default" },
+        { id: "2", name: "Programs", url: "https://example.com", isSpecial: false, variant: "default" }
       ]);
 
-      setHeroButtons(hero.length > 0 ? hero.map(btn => ({ name: btn.name, url: btn.url, variant: btn.variant })) : [
-        { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-        { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-        { name: "Contact", url: "https://example.com", variant: "ghost" }
+      setHeroButtons(hero.length > 0 ? hero : [
+        { id: "1", name: "Visit Ashram", url: "https://example.com", variant: "default" },
+        { id: "2", name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
+        { id: "3", name: "Contact", url: "https://example.com", variant: "ghost" }
       ]);
 
-      setFooterLinks(footer.length > 0 ? footer.map(link => ({ label: link.label, url: link.url })) : [
-        { label: "Call", url: "tel:+910000000000" },
-        { label: "WhatsApp", url: "https://wa.me/910000000000" },
-        { label: "Email", url: "mailto:info@example.com" },
-        { label: "Map", url: "https://maps.google.com" }
+      setFooterLinks(footer.length > 0 ? footer : [
+        { id: "1", label: "Call", url: "tel:+910000000000" },
+        { id: "2", label: "WhatsApp", url: "https://wa.me/910000000000" },
+        { id: "3", label: "Email", url: "mailto:info@example.com" },
+        { id: "4", label: "Map", url: "https://maps.google.com" }
       ]);
 
       setHeroImages(heroImgs);
@@ -99,19 +82,19 @@ export default function MainSite() {
       console.error("Failed to load content:", error);
       // Set fallback data
       setMenuItems([
-        { name: "Meditation Hall", url: "https://example.com" },
-        { name: "Programs", url: "https://example.com" }
+        { id: "1", name: "Meditation Hall", url: "https://example.com", isSpecial: false, variant: "default" },
+        { id: "2", name: "Programs", url: "https://example.com", isSpecial: false, variant: "default" }
       ]);
       setHeroButtons([
-        { name: "Visit Ashram", url: "https://example.com", variant: "default" },
-        { name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
-        { name: "Contact", url: "https://example.com", variant: "ghost" }
+        { id: "1", name: "Visit Ashram", url: "https://example.com", variant: "default" },
+        { id: "2", name: "Upcoming Programs", url: "https://example.com", variant: "outline" },
+        { id: "3", name: "Contact", url: "https://example.com", variant: "ghost" }
       ]);
       setFooterLinks([
-        { label: "Call", url: "tel:+910000000000" },
-        { label: "WhatsApp", url: "https://wa.me/910000000000" },
-        { label: "Email", url: "mailto:info@example.com" },
-        { label: "Map", url: "https://maps.google.com" }
+        { id: "1", label: "Call", url: "tel:+910000000000" },
+        { id: "2", label: "WhatsApp", url: "https://wa.me/910000000000" },
+        { id: "3", label: "Email", url: "mailto:info@example.com" },
+        { id: "4", label: "Map", url: "https://maps.google.com" }
       ]);
     } finally {
       setLoading(false);
@@ -194,26 +177,59 @@ export default function MainSite() {
             Gujarat Ashram
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex gap-8 items-center">
-            {menuItems.map((item: MenuItem, i: number) => (
-              <button
-                key={i}
-                className={`text-sm font-medium tracking-wide hover:text-ashram-amber transition-colors ${
-                  isScrolled ? 'text-ashram-stone' : 'text-white/90 hover:text-white'
-                }`}
-                onClick={() => window.open(item.url, "_blank")}
-              >
-                {item.name}
-              </button>
-            ))}
+            {/* Desktop Menu */}
+    <div className="hidden md:flex gap-8 items-center">
+    {menuItems.map((item: MenuItem, i: number) => {
+        // ✅ If item is marked as "special", render as Button
+        if (item.isSpecial) {
+        // Determine button styling based on variant and scroll state
+        let buttonClassName = "";
+        let buttonVariant: "default" | "outline" | "ghost" | "secondary" = "default";
+
+        if (item.variant === "outline") {
+            buttonVariant = "outline";
+            buttonClassName = isScrolled
+            ? "border-ashram-stone text-ashram-stone hover:bg-ashram-stone hover:text-white"
+            : "border-white/40 text-white hover:bg-white hover:text-ashram-clay";
+        } else if (item.variant === "ghost") {
+            buttonVariant = "ghost";
+            buttonClassName = isScrolled
+            ? "text-ashram-stone hover:bg-ashram-stone/10"
+            : "text-white hover:bg-white/10";
+        } else {
+            // default variant (primary amber button)
+            buttonVariant = isScrolled ? "default" : "secondary";
+            buttonClassName = isScrolled
+            ? "bg-ashram-amber hover:bg-ashram-amber/90 text-white"
+            : "bg-white text-ashram-clay hover:bg-white/90";
+        }
+
+        return (
             <Button
-              variant={isScrolled ? "default" : "secondary"}
-              className={isScrolled ? "bg-ashram-amber hover:bg-ashram-amber/90" : "bg-white text-ashram-clay hover:bg-white/90"}
+            key={i}
+            variant={buttonVariant}
+            className={buttonClassName}
+            onClick={() => window.open(item.url, "_blank")}
             >
-              Donate
+            {item.name}
             </Button>
-          </div>
+        );
+        }
+
+        // ✅ Otherwise, render as regular text link (preserves original UI)
+        return (
+        <button
+            key={i}
+            className={`text-sm font-medium tracking-wide hover:text-ashram-amber transition-colors ${
+            isScrolled ? 'text-ashram-stone' : 'text-white/90 hover:text-white'
+            }`}
+            onClick={() => window.open(item.url, "_blank")}
+        >
+            {item.name}
+        </button>
+        );
+    })}
+    </div>
 
           {/* Mobile Menu Toggle */}
           <button
@@ -238,15 +254,32 @@ export default function MainSite() {
               className="md:hidden bg-white border-t border-ashram-sand absolute w-full shadow-lg overflow-hidden"
             >
               <div className="flex flex-col p-6 gap-4">
-                {menuItems.map((item: MenuItem, i: number) => (
-                  <button
-                    key={i}
-                    className="text-left text-ashram-stone font-medium py-2 border-b border-ashram-sand"
-                    onClick={() => window.open(item.url, "_blank")}
-                  >
-                    {item.name}
-                  </button>
-                ))}
+                {menuItems.map((item: MenuItem, i: number) => {
+                  // ✅ Render special items as buttons in mobile menu too
+                  if (item.isSpecial) {
+                    return (
+                      <Button
+                        key={i}
+                        variant={item.variant === "outline" ? "outline" : item.variant === "ghost" ? "ghost" : "default"}
+                        className="w-full"
+                        onClick={() => window.open(item.url, "_blank")}
+                      >
+                        {item.name}
+                      </Button>
+                    );
+                  }
+
+                  // ✅ Regular menu items stay as text links
+                  return (
+                    <button
+                      key={i}
+                      className="text-left text-ashram-stone font-medium py-2 border-b border-ashram-sand"
+                      onClick={() => window.open(item.url, "_blank")}
+                    >
+                      {item.name}
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -282,109 +315,144 @@ export default function MainSite() {
           </Swiper>
         </div>
 
-        {/* HERO TEXT */}
-        <div className="relative z-10 h-full flex flex-col justify-center items-center text-center text-white px-4">
+        <div className="relative z-10 h-full flex items-center justify-center text-center px-6">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="max-w-4xl mx-auto"
+            className="max-w-4xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
           >
-            <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-sm text-xs font-medium tracking-wider uppercase mb-6 border border-white/30">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="inline-block px-4 py-2 mb-8 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm uppercase tracking-wider"
+            >
               Welcome to Serenity
-            </span>
-            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight tracking-tight drop-shadow-lg">
-              Art of Living <br />
-              <span className="text-ashram-amber italic">Gujarat Ashram</span>
-            </h1>
-            <p className="text-lg md:text-xl max-w-2xl mx-auto leading-relaxed opacity-90 mb-10 font-light">
-              Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace.
-            </p>
+            </motion.div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              {heroButtons.map((btn: HeroButton, idx: number) => (
-                <Button
-                  key={idx}
-                  variant={btn.variant === "default" ? "default" : "outline"}
-                  onClick={() => window.open(btn.url, "_blank")}
-                  className={`px-8 py-6 text-base rounded-full transition-all duration-300 ${
-                    btn.variant === "default"
-                      ? "bg-ashram-amber hover:bg-ashram-amber/90 text-white shadow-lg hover:shadow-ashram-amber/40 hover:-translate-y-1"
-                      : "bg-white/10 backdrop-blur-sm border-white/40 text-white hover:bg-white hover:text-ashram-clay"
-                  }`}
-                >
-                  {btn.name}
-                </Button>
-              ))}
-            </div>
+            <motion.h1
+              className="font-serif font-bold text-white mb-6 drop-shadow-lg text-5xl md:text-7xl lg:text-8xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 1 }}
+            >
+              Art of Living <br />
+              <span className="italic text-ashram-amber">Gujarat Ashram</span>
+            </motion.h1>
+
+            <motion.p
+              className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-light leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+            >
+              Discover a sanctuary for inner peace, ancient wisdom, and holistic rejuvenation amidst nature's embrace.
+            </motion.p>
+
+            <motion.div
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+            >
+              {heroButtons.map((btn: HeroButton, i: number) => {
+                let variant: "default" | "outline" | "ghost" = "default";
+                let className = "";
+
+                if (btn.variant === "outline") {
+                  variant = "outline";
+                  className = "border-white/40 text-white hover:bg-white hover:text-ashram-clay";
+                } else if (btn.variant === "ghost") {
+                  variant = "ghost";
+                  className = "text-white hover:bg-white/10";
+                } else {
+                  variant = "default";
+                  className = "bg-ashram-amber hover:bg-ashram-amber/90 text-white shadow-lg hover:shadow-xl hover:-translate-y-1";
+                }
+
+                return (
+                  <Button
+                    key={i}
+                    size="lg"
+                    variant={variant}
+                    className={`px-8 py-6 rounded-full transition-all ${className}`}
+                    onClick={() => window.open(btn.url, "_blank")}
+                  >
+                    {btn.name}
+                  </Button>
+                );
+              })}
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* Scroll Indicator */}
         <motion.div
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/70 flex flex-col items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/70"
+          transition={{ delay: 1.5 }}
         >
-          <span className="text-xs uppercase tracking-widest">Scroll</span>
-          <div className="w-[1px] h-12 bg-gradient-to-b from-white to-transparent"></div>
+          <span className="text-xs uppercase tracking-wider">Scroll</span>
+          <div className="h-12 w-px bg-gradient-to-b from-white/70 to-transparent" />
         </motion.div>
       </header>
 
-      {/* MAIN CONTENT */}
       <main>
         {/* INFO CARDS */}
-        <section className="relative z-20 -mt-20 px-6 pb-20">
+        <section className="px-6 -mt-20 relative z-20">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
                 icon: Home,
                 title: "Ashram Overview",
                 desc: "Spreading happiness through yoga, meditation, and seva in a pristine environment.",
-                color: "text-ashram-amber",
-                bg: "bg-orange-50"
+                color: "bg-orange-50",
+                iconColor: "text-orange-500"
               },
               {
                 icon: Users,
                 title: "Activities & Programs",
                 desc: "Join Sudarshan Kriya, silence retreats, and community service projects.",
-                color: "text-ashram-green",
-                bg: "bg-green-50"
+                color: "bg-green-50",
+                iconColor: "text-green-500"
               },
               {
                 icon: ImageIcon,
                 title: "Facilities",
                 desc: "Comfortable accommodation, sattvic dining, lush gardens, and meditation halls.",
-                color: "text-blue-600",
-                bg: "bg-blue-50"
+                color: "bg-blue-50",
+                iconColor: "text-blue-500"
               }
-            ].map((item, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Card className="h-full border-none shadow-xl bg-white/95 backdrop-blur hover:shadow-2xl transition-all duration-300 group overflow-hidden">
-                  <div className={`h-1 w-full ${item.bg.replace('bg-', 'bg-gradient-to-r from-transparent via-').replace('50', '500')} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
-                  <CardContent className="p-8 flex flex-col items-center text-center">
-                    <div className={`p-4 rounded-full ${item.bg} mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                      <item.icon className={`w-8 h-8 ${item.color}`} />
-                    </div>
-                    <h3 className="font-serif font-bold text-xl mb-3 text-ashram-clay">{item.title}</h3>
-                    <p className="text-ashram-stone/80 leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            ].map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ y: -5 }}
+                  className="group"
+                >
+                  <Card className="h-full bg-white/95 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all border-none overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-ashram-amber to-transparent w-0 group-hover:w-full transition-all duration-500" />
+                    <CardContent className="p-8 text-center">
+                      <div className={`inline-flex items-center justify-center w-16 h-16 ${card.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform`}>
+                        <Icon className={`w-8 h-8 ${card.iconColor}`} />
+                      </div>
+                      <h3 className="font-serif font-bold text-xl mb-3 text-ashram-clay">{card.title}</h3>
+                      <p className="text-ashram-stone/70 leading-relaxed">{card.desc}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         </section>
 
-        {/* WHY VISIT + GALLERY */}
+        {/* ABOUT & GALLERY */}
         <section className="py-20 px-6 bg-white">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -393,19 +461,23 @@ export default function MainSite() {
               viewport={{ once: true }}
             >
               <span className="text-ashram-amber font-medium tracking-wider uppercase text-sm">Discover</span>
-              <h2 className="font-serif text-4xl md:text-5xl font-bold mb-6 text-ashram-clay mt-2">
-                Why Visit the <br/>Gujarat Ashram?
-              </h2>
-              <p className="text-lg leading-relaxed text-ashram-stone/80 mb-8">
+              <h3 className="font-serif text-4xl md:text-5xl font-bold text-ashram-clay mt-2 mb-6">
+                Why Visit the <br />Gujarat Ashram?
+              </h3>
+              <p className="text-ashram-stone/70 text-lg leading-relaxed mb-8">
                 Experience a calm environment filled with wisdom and transformative meditation practices.
-                Our programs are designed for all levels, from beginners to advanced practitioners, providing a path to inner silence and outer dynamism.
+                Our programs are designed for all levels, from beginners to advanced practitioners, providing
+                a path to inner silence and outer dynamism.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 {GALLERY.map((src, i) => (
                   <motion.div
                     key={i}
-                    whileHover={{ scale: 1.02 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
                     className="rounded-2xl overflow-hidden shadow-md aspect-[4/3]"
                   >
                     <img

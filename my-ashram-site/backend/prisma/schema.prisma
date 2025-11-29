@@ -18,6 +18,8 @@ model MenuItem {
   id        Int      @id @default(autoincrement())
   name      String
   url       String
+  isSpecial Boolean  @default(false)  // ✅ NEW: Mark as special button
+  variant   String   @default("default") // ✅ NEW: Button style (default/outline/ghost)
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -48,6 +50,51 @@ model SiteImage {
   filename  String
   path      String
   order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        String
+  description String
+  buttonText  String?
+  buttonUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AboutContent {
+  id          Int      @id @default(autoincrement())
+  title       String
+  subtitle    String?
+  description String
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InfoCard {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  icon        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactInfo {
+  id        Int      @id @default(autoincrement())
+  type      String   // "phone", "email", "whatsapp", "address", "website"
+  label     String
+  value     String
+  url       String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
