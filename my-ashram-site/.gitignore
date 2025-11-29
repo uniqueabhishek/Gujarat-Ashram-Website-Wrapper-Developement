@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+node_modules
 
 # Build output
 dist/
@@ -19,10 +20,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
-
-# Editor settings
-.vscode/
-.idea/
+logs
+lerna-debug.log*
+dist
+dist-ssr
+*.local
 
 # System files
 .DS_Store
@@ -34,3 +36,14 @@ Thumbs.db
 
 # images generated during development
 D:\D Desktop\Gujarat_Ashram Website\Gujarat Ashram Website Wrapper Developement\my-ashram-site\public\images
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
