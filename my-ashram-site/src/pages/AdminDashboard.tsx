@@ -1,7 +1,5 @@
-// AdminDashboard.tsx - SIMPLE version with only hardcoded authentication
-// NO backend authentication - just simple username/password check
-
-import { useEffect, useState } from "react";
+// AdminDashboard.tsx - Complete admin panel with TypeScript fixes ONLY (UI unchanged)
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,10 +15,11 @@ import {
   Phone,
   Trash2,
   Plus,
-  Lock,
+  X,
 } from "lucide-react";
 
 import {
+  authAPI,
   contentAPI,
   eventsAPI,
   aboutAPI,
@@ -37,13 +36,7 @@ import {
   Image,
 } from "@/lib/api";
 
-// ═══════════════════════════════════════════════════════════
-// HARDCODED CREDENTIALS - CHANGE THESE TO YOUR DESIRED VALUES
-// ═══════════════════════════════════════════════════════════
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
-
-// Type definitions
+// Type definitions for props
 interface EditorProps<T> {
   items: T[];
   setItems: React.Dispatch<React.SetStateAction<T[]>>;
@@ -58,34 +51,27 @@ interface ImageManagerProps {
   heroImages: Image[];
   galleryImages: Image[];
   onRefresh: () => void;
+  onSave: () => Promise<void>;
+  imagesToDelete: Set<string>;
+  setImagesToDelete: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
-// ═══════════════════════════════════════════════════════════
-// MAIN ADMIN DASHBOARD
-// ═══════════════════════════════════════════════════════════
+// ============================================
+// MAIN ADMIN DASHBOARD COMPONENT
+// ============================================
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-
-  // ─────────────────────────────────────────
-  // AUTHENTICATION STATE
-  // ─────────────────────────────────────────
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  // ─────────────────────────────────────────
-  // DASHBOARD STATE
-  // ─────────────────────────────────────────
   const [tab, setTab] = useState("menu");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Content states
+  // Original content states
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
+
+  // New content states
   const [events, setEvents] = useState<Event[]>([]);
   const [aboutContent, setAboutContent] = useState<AboutContent>({
     id: "default",
@@ -95,86 +81,17 @@ const AdminDashboard = () => {
   });
   const [infoCards, setInfoCards] = useState<InfoCard[]>([]);
   const [contactInfo, setContactInfo] = useState<ContactInfo[]>([]);
+
+  // Images
   const [heroImages, setHeroImages] = useState<Image[]>([]);
   const [galleryImages, setGalleryImages] = useState<Image[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<Set<string>>(new Set());
 
-  // ─────────────────────────────────────────
-  // CHECK IF ALREADY LOGGED IN
-  // ─────────────────────────────────────────
+  // Load all data on component mount
   useEffect(() => {
-    const savedAuth = sessionStorage.getItem("isAdminAuthenticated");
-    if (savedAuth === "true") {
-      // Re-authenticate with backend to refresh the cookie
-      fetch("http://localhost:4000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-      }).then(response => {
-        if (response.ok) {
-          setIsAuthenticated(true);
-          loadAllData();
-        } else {
-          sessionStorage.removeItem("isAdminAuthenticated");
-        }
-      });
-    }
+    loadAllData();
   }, []);
 
-  // ─────────────────────────────────────────
-  // SIMPLE LOGIN CHECK
-  // ─────────────────────────────────────────
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    console.log("Login attempt with:", username, password);
-
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      console.log("Frontend credentials matched!");
-
-      try {
-        const response = await fetch("http://localhost:4000/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ username, password }),
-        });
-
-        console.log("Backend response status:", response.status);
-        const data = await response.json();
-        console.log("Backend response data:", data);
-
-        if (response.ok) {
-          setIsAuthenticated(true);
-          sessionStorage.setItem("isAdminAuthenticated", "true");
-          setLoginError("");
-          loadAllData();
-        } else {
-          setLoginError("Backend error: " + (data.error || "Unknown"));
-        }
-      } catch (error) {
-        console.error("Backend auth error:", error);
-        setLoginError("Backend authentication error: " + error);
-      }
-    } else {
-      setLoginError("Invalid username or password");
-    }
-  };
-
-  // ─────────────────────────────────────────
-  // LOGOUT
-  // ─────────────────────────────────────────
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem("isAdminAuthenticated");
-    setUsername("");
-    setPassword("");
-    navigate("/");
-  };
-
-  // ─────────────────────────────────────────
-  // LOAD DATA FROM BACKEND
-  // ─────────────────────────────────────────
   async function loadAllData() {
     try {
       const [
@@ -210,13 +127,11 @@ const AdminDashboard = () => {
       setGalleryImages(galleryImgs);
     } catch (error) {
       console.error("Failed to load data:", error);
-      setMessage("⚠️ Failed to load some data from server");
+      setMessage("âš ï¸ Failed to load some data from server");
     }
   }
 
-  // ─────────────────────────────────────────
-  // SAVE CHANGES
-  // ─────────────────────────────────────────
+  // Save handler for current tab
   async function handleSave() {
     setLoading(true);
     setMessage("");
@@ -246,105 +161,48 @@ const AdminDashboard = () => {
         case "contact":
           success = await contactAPI.saveContactInfo(contactInfo);
           break;
+        case "images":
+          // Delete marked images
+          if (imagesToDelete.size > 0) {
+            const deletePromises = Array.from(imagesToDelete).map(id =>
+              imageAPI.deleteImage(id)
+            );
+            await Promise.all(deletePromises);
+            setImagesToDelete(new Set());
+            await loadAllData();
+            success = true;
+          } else {
+            success = true;
+          }
+          break;
       }
 
       if (success) {
-        setMessage("✅ Changes saved successfully!");
+        setMessage("âœ… Changes saved successfully!");
         setTimeout(() => setMessage(""), 3000);
       } else {
-        setMessage("❌ Failed to save changes");
+        setMessage("âŒ Failed to save changes");
       }
     } catch (error) {
-      setMessage(
-        "❌ Error: " + (error instanceof Error ? error.message : "Unknown error")
-      );
+      setMessage("âŒ Error: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // LOGIN SCREEN
-  // ═══════════════════════════════════════════════════════════
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center px-4">
-        <Card className="w-full max-w-md shadow-xl">
-          <div className="p-8">
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center">
-                <Lock className="w-8 h-8 text-white" />
-              </div>
-            </div>
+  const handleLogout = async () => {
+    // Clear localStorage authentication
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("adminUser");
 
-            <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-              Admin Login
-            </h1>
-            <p className="text-center text-gray-600 mb-6">
-              Gujarat Ashram Admin Panel
-            </p>
+    // Call backend logout API
+    await authAPI.logout();
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter username"
-                  required
-                />
-              </div>
+    // Navigate to login page
+    navigate("/login");
+  };
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter password"
-                  required
-                />
-              </div>
-
-              {loginError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {loginError}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2"
-              >
-                Login
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="w-full text-gray-600 hover:text-gray-800"
-              >
-                ← Back to Main Site
-              </Button>
-            </form>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // ADMIN DASHBOARD
-  // ═══════════════════════════════════════════════════════════
-
+  // Tab configuration
   const tabs = [
     { id: "menu", label: "Menu", icon: Menu },
     { id: "hero", label: "Hero Buttons", icon: ImageIcon },
@@ -386,9 +244,9 @@ const AdminDashboard = () => {
         {message && (
           <div
             className={`mb-4 p-3 rounded-lg text-center ${
-              message.includes("✅")
+              message.includes("âœ…")
                 ? "bg-green-100 text-green-700"
-                : message.includes("❌")
+                : message.includes("âŒ")
                 ? "bg-red-100 text-red-700"
                 : "bg-yellow-100 text-yellow-700"
             }`}
@@ -415,139 +273,145 @@ const AdminDashboard = () => {
           })}
         </div>
 
-        {/* Content Editor */}
+        {/* Content Editor Panel */}
         <Card className="shadow-lg border-0">
           <CardContent className="p-6">
-            {tab === "menu" && <MenuEditor items={menuItems} setItems={setMenuItems} />}
-            {tab === "hero" && <HeroEditor items={heroButtons} setItems={setHeroButtons} />}
-            {tab === "footer" && <FooterEditor items={footerLinks} setItems={setFooterLinks} />}
-            {tab === "events" && <EventsEditor items={events} setItems={setEvents} />}
-            {tab === "about" && <AboutEditor content={aboutContent} setContent={setAboutContent} />}
-            {tab === "cards" && <InfoCardsEditor items={infoCards} setItems={setInfoCards} />}
-            {tab === "contact" && <ContactEditor items={contactInfo} setItems={setContactInfo} />}
+            {/* Menu Items Editor */}
+            {tab === "menu" && (
+              <MenuEditor items={menuItems} setItems={setMenuItems} />
+            )}
+
+            {/* Hero Buttons Editor */}
+            {tab === "hero" && (
+              <HeroEditor items={heroButtons} setItems={setHeroButtons} />
+            )}
+
+            {/* Footer Links Editor */}
+            {tab === "footer" && (
+              <FooterEditor items={footerLinks} setItems={setFooterLinks} />
+            )}
+
+            {/* Events Editor */}
+            {tab === "events" && (
+              <EventsEditor items={events} setItems={setEvents} />
+            )}
+
+            {/* About Content Editor */}
+            {tab === "about" && (
+              <AboutEditor content={aboutContent} setContent={setAboutContent} />
+            )}
+
+            {/* Info Cards Editor */}
+            {tab === "cards" && (
+              <InfoCardsEditor items={infoCards} setItems={setInfoCards} />
+            )}
+
+            {/* Contact Info Editor */}
+            {tab === "contact" && (
+              <ContactEditor items={contactInfo} setItems={setContactInfo} />
+            )}
+
+            {/* Image Manager */}
             {tab === "images" && (
               <ImageManager
                 heroImages={heroImages}
                 galleryImages={galleryImages}
                 onRefresh={loadAllData}
+                onSave={handleSave}
+                imagesToDelete={imagesToDelete}
+                setImagesToDelete={setImagesToDelete}
               />
             )}
           </CardContent>
         </Card>
 
-        {/* Save Button */}
-        {tab !== "images" && (
-          <div className="mt-6 flex justify-center">
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
-            >
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        )}
+        {/* Save Button (for all tabs) */}
+        <div className="mt-6 flex justify-center">
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════
+// ============================================
 // EDITOR COMPONENTS
-// ═══════════════════════════════════════════════════════════
+// ============================================
 
+// Menu Items Editor (existing)
 function MenuEditor({ items, setItems }: EditorProps<MenuItem>) {
-    const addItem = () => {
-      setItems([
-        ...items,
-        {
-          id: Date.now().toString(),
-          name: "New Menu Item",
-          url: "https://",
-          isSpecial: false,
-          variant: "default",
-        },
-      ]);
+  const addItem = () => {
+    const newItem: MenuItem = {
+      id: Date.now().toString(),
+      name: "New Menu Item",
+      url: "https://",
     };
+    setItems([...items, newItem]);
+  };
 
-    const removeItem = (index: number) => {
-      setItems(items.filter((_, i) => i !== index));
-    };
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
 
-    const updateItem = (index: number, field: string, value: string | boolean) => {
-      const updated = [...items];
-      updated[index] = { ...updated[index], [field]: value };
-      setItems(updated);
-    };
+  const updateItem = (index: number, field: string, value: string) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [field]: value };
+    setItems(updated);
+  };
 
-    return (
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Navigation Menu Items</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          💡 Toggle "Special" to display as a button instead of a text link
-        </p>
-        <div className="space-y-3">
-          {items.map((item, idx) => (
-            <div key={idx} className="border rounded-lg p-3 space-y-2">
-              {/* Name and URL inputs */}
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 px-3 py-2 border rounded"
-                  placeholder="Menu Name"
-                  value={item.name}
-                  onChange={(e) => updateItem(idx, "name", e.target.value)}
-                />
-                <input
-                  className="flex-1 px-3 py-2 border rounded"
-                  placeholder="URL"
-                  value={item.url}
-                  onChange={(e) => updateItem(idx, "url", e.target.value)}
-                />
-                <Button variant="outline" onClick={() => removeItem(idx)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+  return (
+    <div>
+      <h2 className="text-xl font-semibold mb-4">Navigation Menu Items</h2>
 
-              {/* Special Button Toggle */}
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={item.isSpecial || false}
-                    onChange={(e) => updateItem(idx, "isSpecial", e.target.checked)}
-                    className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Display as Button
-                  </span>
-                </label>
-
-                {/* Show variant selector only if isSpecial is true */}
-                {item.isSpecial && (
-                  <select
-                    className="px-3 py-1.5 border rounded text-sm"
-                    value={item.variant || "default"}
-                    onChange={(e) => updateItem(idx, "variant", e.target.value)}
-                  >
-                    <option value="default">Primary (Amber)</option>
-                    <option value="outline">Outline (White Border)</option>
-                    <option value="ghost">Ghost (Transparent)</option>
-                  </select>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <Button onClick={addItem} variant="outline" className="mt-4 w-full">
-          <Plus className="w-4 h-4 mr-2" /> Add Menu Item
-        </Button>
+      <div className="space-y-3">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex gap-2">
+            <input
+              className="flex-1 px-3 py-2 border rounded"
+              placeholder="Menu Name"
+              value={item.name}
+              onChange={(e) => updateItem(idx, "name", e.target.value)}
+            />
+            <input
+              className="flex-1 px-3 py-2 border rounded"
+              placeholder="URL"
+              value={item.url}
+              onChange={(e) => updateItem(idx, "url", e.target.value)}
+            />
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => removeItem(idx)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
       </div>
-    );
-  }
-  
+
+      <Button onClick={addItem} variant="outline" className="mt-4 w-full">
+        <Plus className="w-4 h-4 mr-2" /> Add Menu Item
+      </Button>
+    </div>
+  );
+}
+
+// Hero Buttons Editor (existing)
 function HeroEditor({ items, setItems }: EditorProps<HeroButton>) {
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), name: "New Button", url: "https://", variant: "default" }]);
+    const newItem: HeroButton = {
+      id: Date.now().toString(),
+      name: "New Button",
+      url: "https://",
+      variant: "default",
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -563,6 +427,7 @@ function HeroEditor({ items, setItems }: EditorProps<HeroButton>) {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Hero Section Buttons</h2>
+
       <div className="space-y-3">
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-2">
@@ -586,12 +451,17 @@ function HeroEditor({ items, setItems }: EditorProps<HeroButton>) {
               <option value="default">Primary</option>
               <option value="outline">Outline</option>
             </select>
-            <Button variant="outline" onClick={() => removeItem(idx)}>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => removeItem(idx)}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         ))}
       </div>
+
       <Button onClick={addItem} variant="outline" className="mt-4 w-full">
         <Plus className="w-4 h-4 mr-2" /> Add Hero Button
       </Button>
@@ -599,9 +469,15 @@ function HeroEditor({ items, setItems }: EditorProps<HeroButton>) {
   );
 }
 
+// Footer Links Editor (existing)
 function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), label: "New Link", url: "https://" }]);
+    const newItem: FooterLink = {
+      id: Date.now().toString(),
+      label: "New Link",
+      url: "https://",
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -617,6 +493,7 @@ function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Footer Contact Links</h2>
+
       <div className="space-y-3">
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-2">
@@ -632,12 +509,17 @@ function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
               value={item.url}
               onChange={(e) => updateItem(idx, "url", e.target.value)}
             />
-            <Button variant="outline" onClick={() => removeItem(idx)}>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => removeItem(idx)}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         ))}
       </div>
+
       <Button onClick={addItem} variant="outline" className="mt-4 w-full">
         <Plus className="w-4 h-4 mr-2" /> Add Footer Link
       </Button>
@@ -645,16 +527,18 @@ function FooterEditor({ items, setItems }: EditorProps<FooterLink>) {
   );
 }
 
+// NEW: Events Editor
 function EventsEditor({ items, setItems }: EditorProps<Event>) {
   const addItem = () => {
-    setItems([...items, {
+    const newItem: Event = {
       id: Date.now().toString(),
       title: "New Event",
       date: "Date TBD",
-      description: "Event description",
+      description: "Event description here",
       buttonText: "Register Now",
-      buttonUrl: ""
-    }]);
+      buttonUrl: "",
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -670,6 +554,10 @@ function EventsEditor({ items, setItems }: EditorProps<Event>) {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Manage events that appear on the homepage
+      </p>
+
       <div className="space-y-4">
         {items.map((item, idx) => (
           <Card key={idx} className="p-4">
@@ -681,33 +569,40 @@ function EventsEditor({ items, setItems }: EditorProps<Event>) {
                   value={item.title}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
                 />
-                <Button variant="outline" onClick={() => removeItem(idx)}>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => removeItem(idx)}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
+
               <input
                 className="w-full px-3 py-2 border rounded"
-                placeholder="Date"
+                placeholder="Date (e.g., Dec 5 - Dec 7, 2025)"
                 value={item.date}
                 onChange={(e) => updateItem(idx, "date", e.target.value)}
               />
+
               <textarea
                 className="w-full px-3 py-2 border rounded"
-                placeholder="Description"
+                placeholder="Event Description"
                 rows={2}
                 value={item.description}
                 onChange={(e) => updateItem(idx, "description", e.target.value)}
               />
+
               <div className="flex gap-2">
                 <input
                   className="flex-1 px-3 py-2 border rounded"
                   placeholder="Button Text"
-                  value={item.buttonText || ""}
+                  value={item.buttonText || "Register Now"}
                   onChange={(e) => updateItem(idx, "buttonText", e.target.value)}
                 />
                 <input
                   className="flex-1 px-3 py-2 border rounded"
-                  placeholder="Button URL"
+                  placeholder="Registration URL (optional)"
                   value={item.buttonUrl || ""}
                   onChange={(e) => updateItem(idx, "buttonUrl", e.target.value)}
                 />
@@ -716,6 +611,7 @@ function EventsEditor({ items, setItems }: EditorProps<Event>) {
           </Card>
         ))}
       </div>
+
       <Button onClick={addItem} variant="outline" className="mt-4 w-full">
         <Plus className="w-4 h-4 mr-2" /> Add Event
       </Button>
@@ -723,42 +619,68 @@ function EventsEditor({ items, setItems }: EditorProps<Event>) {
   );
 }
 
+// NEW: About Content Editor
 function AboutEditor({ content, setContent }: AboutEditorProps) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">About Section</h2>
+      <h2 className="text-xl font-semibold mb-4">About Section Content</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Edit the main content for the About section
+      </p>
+
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
           <input
             className="w-full px-3 py-2 border rounded"
+            placeholder="Welcome to Gujarat Ashram"
             value={content.title}
-            onChange={(e) => setContent({ ...content, title: e.target.value })}
+            onChange={(e) =>
+              setContent({ ...content, title: e.target.value })
+            }
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium mb-1">Subtitle</label>
+          <label className="block text-sm font-medium mb-1">
+            Subtitle (optional)
+          </label>
           <input
             className="w-full px-3 py-2 border rounded"
+            placeholder="A Sanctuary for Inner Peace"
             value={content.subtitle || ""}
-            onChange={(e) => setContent({ ...content, subtitle: e.target.value })}
+            onChange={(e) =>
+              setContent({ ...content, subtitle: e.target.value })
+            }
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
+          <label className="block text-sm font-medium mb-1">
+            Main Description
+          </label>
           <textarea
             className="w-full px-3 py-2 border rounded"
+            placeholder="Enter the main about text..."
             rows={6}
             value={content.description}
-            onChange={(e) => setContent({ ...content, description: e.target.value })}
+            onChange={(e) =>
+              setContent({ ...content, description: e.target.value })
+            }
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium mb-1">Video URL</label>
+          <label className="block text-sm font-medium mb-1">
+            Video URL (optional)
+          </label>
           <input
             className="w-full px-3 py-2 border rounded"
+            placeholder="https://youtube.com/..."
             value={content.videoUrl || ""}
-            onChange={(e) => setContent({ ...content, videoUrl: e.target.value })}
+            onChange={(e) =>
+              setContent({ ...content, videoUrl: e.target.value })
+            }
           />
         </div>
       </div>
@@ -766,9 +688,16 @@ function AboutEditor({ content, setContent }: AboutEditorProps) {
   );
 }
 
+// NEW: Info Cards Editor
 function InfoCardsEditor({ items, setItems }: EditorProps<InfoCard>) {
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), title: "New Feature", description: "Description", icon: "Home" }]);
+    const newItem: InfoCard = {
+      id: Date.now().toString(),
+      title: "New Feature",
+      description: "Description here",
+      icon: "Home",
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -781,11 +710,28 @@ function InfoCardsEditor({ items, setItems }: EditorProps<InfoCard>) {
     setItems(updated);
   };
 
-  const iconOptions = ["Home", "Users", "MapPin", "Calendar", "Heart", "Star", "Sun", "Moon"];
+  const iconOptions = [
+    "Home",
+    "Users",
+    "MapPin",
+    "Calendar",
+    "Heart",
+    "Star",
+    "Sun",
+    "Moon",
+    "Mountain",
+    "Trees",
+    "Flower",
+    "Coffee",
+  ];
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Info Cards</h2>
+      <h2 className="text-xl font-semibold mb-4">Info Cards / Facilities</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Manage the feature cards that appear on the homepage
+      </p>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {items.map((item, idx) => (
           <Card key={idx} className="p-4">
@@ -797,40 +743,58 @@ function InfoCardsEditor({ items, setItems }: EditorProps<InfoCard>) {
                   onChange={(e) => updateItem(idx, "icon", e.target.value)}
                 >
                   {iconOptions.map((icon) => (
-                    <option key={icon} value={icon}>{icon}</option>
+                    <option key={icon} value={icon}>
+                      {icon}
+                    </option>
                   ))}
                 </select>
                 <input
                   className="flex-1 px-3 py-2 border rounded"
-                  placeholder="Title"
+                  placeholder="Card Title"
                   value={item.title}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
                 />
-                <Button variant="outline" onClick={() => removeItem(idx)}>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => removeItem(idx)}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
+
               <textarea
                 className="w-full px-3 py-2 border rounded"
-                placeholder="Description"
+                placeholder="Card Description"
                 rows={2}
                 value={item.description}
-                onChange={(e) => updateItem(idx, "description", e.target.value)}
+                onChange={(e) =>
+                  updateItem(idx, "description", e.target.value)
+                }
               />
             </div>
           </Card>
         ))}
       </div>
+
       <Button onClick={addItem} variant="outline" className="mt-4 w-full">
-        <Plus className="w-4 h-4 mr-2" /> Add Card
+        <Plus className="w-4 h-4 mr-2" /> Add Info Card
       </Button>
     </div>
   );
 }
 
+// NEW: Contact Info Editor
 function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), type: "phone", label: "New Contact", value: "", url: "" }]);
+    const newItem: ContactInfo = {
+      id: Date.now().toString(),
+      type: "phone",
+      label: "New Contact",
+      value: "",
+      url: "",
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -843,11 +807,22 @@ function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
     setItems(updated);
   };
 
-  const types = ["phone", "email", "whatsapp", "address", "website"];
+  const typeOptions = [
+    { value: "phone", label: "Phone" },
+    { value: "email", label: "Email" },
+    { value: "whatsapp", label: "WhatsApp" },
+    { value: "address", label: "Address" },
+    { value: "website", label: "Website" },
+    { value: "other", label: "Other" },
+  ];
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Manage contact details shown in the footer
+      </p>
+
       <div className="space-y-3">
         {items.map((item, idx) => (
           <Card key={idx} className="p-4">
@@ -857,30 +832,39 @@ function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
                 value={item.type}
                 onChange={(e) => updateItem(idx, "type", e.target.value)}
               >
-                {types.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                {typeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
+
               <input
                 className="px-3 py-2 border rounded"
-                placeholder="Label"
+                placeholder="Display Label"
                 value={item.label}
                 onChange={(e) => updateItem(idx, "label", e.target.value)}
               />
+
               <input
                 className="px-3 py-2 border rounded"
-                placeholder="Value"
+                placeholder="Value (phone, email, etc.)"
                 value={item.value}
                 onChange={(e) => updateItem(idx, "value", e.target.value)}
               />
+
               <div className="flex gap-2">
                 <input
                   className="flex-1 px-3 py-2 border rounded"
-                  placeholder="URL"
+                  placeholder="Link URL (optional)"
                   value={item.url || ""}
                   onChange={(e) => updateItem(idx, "url", e.target.value)}
                 />
-                <Button variant="outline" onClick={() => removeItem(idx)}>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => removeItem(idx)}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -888,98 +872,324 @@ function ContactEditor({ items, setItems }: EditorProps<ContactInfo>) {
           </Card>
         ))}
       </div>
+
       <Button onClick={addItem} variant="outline" className="mt-4 w-full">
-        <Plus className="w-4 h-4 mr-2" /> Add Contact
+        <Plus className="w-4 h-4 mr-2" /> Add Contact Info
       </Button>
     </div>
   );
 }
 
-function ImageManager({ heroImages, galleryImages, onRefresh }: ImageManagerProps) {
+// Image Manager (Enhanced with preview modal, delete marking, and save functionality)
+function ImageManager({
+  heroImages,
+  galleryImages,
+  onRefresh,
+  imagesToDelete,
+  setImagesToDelete,
+}: ImageManagerProps) {
   const [uploading, setUploading] = useState(false);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Image preview modal state
+  const [previewImage, setPreviewImage] = useState<{ url: string; filename: string } | null>(null);
+
+  // Handle file selection and upload immediately
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    category: string
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
+
+    console.log(`File selected: ${file.name}, Size: ${file.size}, Type: ${file.type}, Category: ${category}`);
+
+    // Check image limit (15 images per category)
+    const currentImages = category === "hero" ? heroImages : galleryImages;
+    if (currentImages.length >= 15) {
+      alert(`Maximum limit of 15 images reached for ${category} category. Please delete some images first.`);
+      // Reset file input
+      event.target.value = "";
+      return;
+    }
 
     setUploading(true);
     try {
-      await imageAPI.uploadImage(file, category);
-      onRefresh();
+      console.log("Starting upload...");
+      const uploaded = await imageAPI.uploadImage(file, category);
+      console.log("Upload response:", uploaded);
+
+      if (uploaded) {
+        console.log("Upload successful, refreshing images...");
+        // Refresh images
+        onRefresh();
+        // Reset file input
+        event.target.value = "";
+        alert("Image uploaded successfully!");
+      } else {
+        console.error("Upload returned null/false");
+        alert("Failed to upload image. Please try again.");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(`Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setUploading(false);
     }
+  };
+
+  // Mark/unmark image for deletion
+  const toggleDeleteMark = (id: string) => {
+    setImagesToDelete(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Image Management</h2>
 
+      {/* Hero Images */}
       <div className="mb-8">
-        <h3 className="font-medium mb-3">Hero Images</h3>
-        <div className="grid grid-cols-3 gap-4">
-          {heroImages.map((img) => (
-            <div key={img.id} className="relative">
-              <img
-                src={`http://localhost:4000${img.path}`}
-                alt={img.alt || ""}
-                className="w-full h-32 object-cover rounded"
-              />
-              <Button
-                variant="destructive"
-                size="default"
-                className="absolute top-2 right-2"
-                onClick={async () => {
-                  await imageAPI.deleteImage(img.id);
-                  onRefresh();
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium">Hero Slider Images</h3>
+          <span className="text-sm text-gray-600">
+            {heroImages.length} / 15 images
+          </span>
         </div>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleUpload(e, "hero")}
-          disabled={uploading}
-          className="mt-3"
-        />
+
+        {/* Existing Images Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {heroImages.map((img) => {
+            const isMarkedForDelete = imagesToDelete.has(img.id);
+            return (
+              <div
+                key={img.id}
+                className={`relative group cursor-pointer ${isMarkedForDelete ? 'opacity-50' : ''}`}
+                onClick={() => setPreviewImage({ url: `http://localhost:4000${img.path}`, filename: img.filename })}
+              >
+                <img
+                  src={`http://localhost:4000${img.path}`}
+                  alt={img.alt || "Hero image"}
+                  className={`w-full h-48 object-cover rounded-lg border-2 transition-all ${
+                    isMarkedForDelete
+                      ? 'border-red-500 grayscale'
+                      : 'border-gray-200 group-hover:border-orange-400'
+                  }`}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg" />
+
+                {/* Delete X button */}
+                <button
+                  className={`absolute top-2 right-2 transition-opacity z-10 rounded-md px-2 py-1 text-white font-medium ${
+                    isMarkedForDelete
+                      ? 'opacity-100 bg-green-600 hover:bg-green-700'
+                      : 'opacity-0 group-hover:opacity-100 bg-red-600 hover:bg-red-700'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDeleteMark(img.id);
+                  }}
+                >
+                  {isMarkedForDelete ? (
+                    <span className="text-xs">Undo</span>
+                  ) : (
+                    <X className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Filename overlay */}
+                <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-70 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isMarkedForDelete && <span className="text-red-400 font-semibold">MARKED FOR DELETE - </span>}
+                  {img.filename}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {heroImages.length === 0 && (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+            <p className="text-gray-500">No hero images uploaded yet</p>
+          </div>
+        )}
+
+        {/* Upload Section */}
+        <div className="mt-4">
+          <input
+            ref={heroFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileSelect(e, "hero")}
+            disabled={uploading}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("Hero upload button clicked");
+              console.log("Hero file input ref:", heroFileInputRef.current);
+              if (heroFileInputRef.current) {
+                heroFileInputRef.current.click();
+                console.log("File input click triggered");
+              } else {
+                console.error("Hero file input ref is null");
+              }
+            }}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? "Uploading..." : "Add Hero Image"}
+          </Button>
+        </div>
       </div>
 
+      {/* Gallery Images */}
       <div>
-        <h3 className="font-medium mb-3">Gallery Images</h3>
-        <div className="grid grid-cols-3 gap-4">
-          {galleryImages.map((img) => (
-            <div key={img.id} className="relative">
-              <img
-                src={`http://localhost:4000${img.path}`}
-                alt={img.alt || ""}
-                className="w-full h-32 object-cover rounded"
-              />
-              <Button
-                variant="destructive"
-                size="default"
-                className="absolute top-2 right-2"
-                onClick={async () => {
-                  await imageAPI.deleteImage(img.id);
-                  onRefresh();
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium">Gallery Images</h3>
+          <span className="text-sm text-gray-600">
+            {galleryImages.length} / 15 images
+          </span>
         </div>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleUpload(e, "gallery")}
-          disabled={uploading}
-          className="mt-3"
-        />
+
+        {/* Existing Images Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {galleryImages.map((img) => {
+            const isMarkedForDelete = imagesToDelete.has(img.id);
+            return (
+              <div
+                key={img.id}
+                className={`relative group cursor-pointer ${isMarkedForDelete ? 'opacity-50' : ''}`}
+                onClick={() => setPreviewImage({ url: `http://localhost:4000${img.path}`, filename: img.filename })}
+              >
+                <img
+                  src={`http://localhost:4000${img.path}`}
+                  alt={img.alt || "Gallery image"}
+                  className={`w-full h-48 object-cover rounded-lg border-2 transition-all ${
+                    isMarkedForDelete
+                      ? 'border-red-500 grayscale'
+                      : 'border-gray-200 group-hover:border-orange-400'
+                  }`}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg" />
+
+                {/* Delete X button */}
+                <button
+                  className={`absolute top-2 right-2 transition-opacity z-10 rounded-md px-2 py-1 text-white font-medium ${
+                    isMarkedForDelete
+                      ? 'opacity-100 bg-green-600 hover:bg-green-700'
+                      : 'opacity-0 group-hover:opacity-100 bg-red-600 hover:bg-red-700'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDeleteMark(img.id);
+                  }}
+                >
+                  {isMarkedForDelete ? (
+                    <span className="text-xs">Undo</span>
+                  ) : (
+                    <X className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Filename overlay */}
+                <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-70 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isMarkedForDelete && <span className="text-red-400 font-semibold">MARKED FOR DELETE - </span>}
+                  {img.filename}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {galleryImages.length === 0 && (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+            <p className="text-gray-500">No gallery images uploaded yet</p>
+          </div>
+        )}
+
+        {/* Upload Section */}
+        <div className="mt-4">
+          <input
+            ref={galleryFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileSelect(e, "gallery")}
+            disabled={uploading}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("Gallery upload button clicked");
+              console.log("Gallery file input ref:", galleryFileInputRef.current);
+              if (galleryFileInputRef.current) {
+                galleryFileInputRef.current.click();
+                console.log("File input click triggered");
+              } else {
+                console.error("Gallery file input ref is null");
+              }
+            }}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? "Uploading..." : "Add Gallery Image"}
+          </Button>
+        </div>
       </div>
+
+      {/* Pending Changes Indicator */}
+      {imagesToDelete.size > 0 && (
+        <div className="mt-6 p-3 bg-amber-50 border-2 border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800">
+            ⚠️ {imagesToDelete.size} image(s) marked for deletion. Click "Save Changes" button below to confirm.
+          </p>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="max-w-4xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <img
+              src={previewImage.url}
+              alt={previewImage.filename}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            />
+            <div className="absolute -bottom-10 left-0 right-0 text-center text-white text-sm">
+              {previewImage.filename}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

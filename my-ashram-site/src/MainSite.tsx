@@ -25,7 +25,7 @@ import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
 // ✅ Backend API Integration
-import { contentAPI, imageAPI, MenuItem, HeroButton, FooterLink, Image } from "@/lib/api";
+import { contentAPI, imageAPI, contactAPI, MenuItem, HeroButton, FooterLink, Image, ContactInfo } from "@/lib/api";
 
 const API_BASE = "http://localhost:4000";
 
@@ -34,6 +34,7 @@ export default function MainSite() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
+  const [contactInfo, setContactInfo] = useState<ContactInfo[]>([]);
   const [heroImages, setHeroImages] = useState<Image[]>([]);
   const [galleryImages, setGalleryImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,13 +50,18 @@ export default function MainSite() {
 
   async function loadContent() {
     try {
-      const [menu, hero, footer, heroImgs, galleryImgs] = await Promise.all([
+      console.log("MainSite: Loading content from backend...");
+      const [menu, hero, footer, contact, heroImgs, galleryImgs] = await Promise.all([
         contentAPI.getMenuItems(),
         contentAPI.getHeroButtons(),
         contentAPI.getFooterLinks(),
+        contactAPI.getContactInfo(),
         imageAPI.getImagesByCategory("hero"),
         imageAPI.getImagesByCategory("gallery"),
       ]);
+
+      console.log("MainSite: Hero images received:", heroImgs);
+      console.log("MainSite: Gallery images received:", galleryImgs);
 
       // ✅ SIMPLIFIED: API already returns correct type
       setMenuItems(menu.length > 0 ? menu : [
@@ -76,8 +82,17 @@ export default function MainSite() {
         { id: "4", label: "Map", url: "https://maps.google.com" }
       ]);
 
+      setContactInfo(contact.length > 0 ? contact : [
+        { id: "1", type: "address", label: "Address", value: "Vasad, Gujarat 388306, India", url: "" },
+        { id: "2", type: "phone", label: "Call", value: "+91 98765 43210", url: "tel:+919876543210" },
+        { id: "3", type: "whatsapp", label: "WhatsApp", value: "+91 98765 43210", url: "https://wa.me/919876543210" },
+        { id: "4", type: "email", label: "Email", value: "info@example.com", url: "mailto:info@example.com" },
+        { id: "5", type: "other", label: "Map", value: "View on Map", url: "https://maps.google.com" }
+      ]);
+
       setHeroImages(heroImgs);
       setGalleryImages(galleryImgs);
+      console.log("MainSite: Content loaded successfully");
     } catch (error) {
       console.error("Failed to load content:", error);
       // Set fallback data
@@ -96,6 +111,13 @@ export default function MainSite() {
         { id: "3", label: "Email", url: "mailto:info@example.com" },
         { id: "4", label: "Map", url: "https://maps.google.com" }
       ]);
+      setContactInfo([
+        { id: "1", type: "address", label: "Address", value: "Vasad, Gujarat 388306, India", url: "" },
+        { id: "2", type: "phone", label: "Call", value: "+91 98765 43210", url: "tel:+919876543210" },
+        { id: "3", type: "whatsapp", label: "WhatsApp", value: "+91 98765 43210", url: "https://wa.me/919876543210" },
+        { id: "4", type: "email", label: "Email", value: "info@example.com", url: "mailto:info@example.com" },
+        { id: "5", type: "other", label: "Map", value: "View on Map", url: "https://maps.google.com" }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +134,11 @@ export default function MainSite() {
 
   // ✅ Display images with fallback
   const HERO_IMAGES = heroImages.length > 0
-    ? heroImages.map(img => `${API_BASE}${img.path}`)
+    ? heroImages.map(img => {
+        const url = `${API_BASE}${img.path}`;
+        console.log(`MainSite: Hero image URL: ${url}`);
+        return url;
+      })
     : [
         "/images/ashram-hero1.jpg",
         "/images/ashram-hero2.jpg",
@@ -120,13 +146,20 @@ export default function MainSite() {
       ];
 
   const GALLERY = galleryImages.length > 0
-    ? galleryImages.map(img => `${API_BASE}${img.path}`)
+    ? galleryImages.map(img => {
+        const url = `${API_BASE}${img.path}`;
+        console.log(`MainSite: Gallery image URL: ${url}`);
+        return url;
+      })
     : [
         "/images/meditation-hall.jpg",
         "/images/nature-walk.jpg",
         "/images/group-session.jpg",
         "/images/accommodation.jpg"
       ];
+
+  console.log("MainSite: HERO_IMAGES array:", HERO_IMAGES);
+  console.log("MainSite: Using fallback?", heroImages.length === 0);
 
   const EVENTS = [
     {
@@ -503,38 +536,45 @@ export default function MainSite() {
                 </h3>
 
                 <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="mt-1 bg-white p-2 rounded-full shadow-sm">
-                      <NavigationIcon className="w-5 h-5 text-ashram-clay" />
+                  {/* Address Section */}
+                  {contactInfo.filter((info) => info.type === "address").map((address) => (
+                    <div key={address.id} className="flex items-start gap-4">
+                      <div className="mt-1 bg-white p-2 rounded-full shadow-sm">
+                        <NavigationIcon className="w-5 h-5 text-ashram-clay" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-ashram-stone">{address.label}</h4>
+                        <p className="text-ashram-stone/70">{address.value}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-ashram-stone">Address</h4>
-                      <p className="text-ashram-stone/70">Vasad, Gujarat 388306, India</p>
-                    </div>
-                  </div>
+                  ))}
 
+                  {/* Contact Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                    {footerLinks.map((link: FooterLink, idx: number) => {
-                      const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-                        Call: Phone,
-                        WhatsApp: Phone,
-                        Email: Mail,
-                        Map: NavigationIcon
-                      };
-                      const Icon = icons[link.label] || NavigationIcon;
+                    {contactInfo
+                      .filter((info) => info.type !== "address")
+                      .map((contact: ContactInfo, idx: number) => {
+                        const icons: Record<string, React.ComponentType<{ className?: string }>> = {
+                          phone: Phone,
+                          whatsapp: Phone,
+                          email: Mail,
+                          website: NavigationIcon,
+                          other: NavigationIcon
+                        };
+                        const Icon = icons[contact.type] || NavigationIcon;
 
-                      return (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          className="flex items-center justify-start gap-3 h-auto py-3 px-4 bg-white border-ashram-amber/20 hover:border-ashram-amber hover:bg-ashram-amber/5 text-ashram-clay"
-                          onClick={() => window.open(link.url, "_blank")}
-                        >
-                          <Icon className="w-4 h-4 text-ashram-amber" />
-                          {link.label}
-                        </Button>
-                      );
-                    })}
+                        return (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            className="flex items-center justify-start gap-3 h-auto py-3 px-4 bg-white border-ashram-amber/20 hover:border-ashram-amber hover:bg-ashram-amber/5 text-ashram-clay"
+                            onClick={() => window.open(contact.url || "#", "_blank")}
+                          >
+                            <Icon className="w-4 h-4 text-ashram-amber" />
+                            {contact.label}
+                          </Button>
+                        );
+                      })}
                   </div>
                 </div>
               </div>

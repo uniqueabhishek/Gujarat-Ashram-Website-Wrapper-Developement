@@ -31,7 +31,18 @@ if (!JWT_SECRET) {
 }
 
 const app = express();
-app.use(helmet());
+
+// Configure helmet with relaxed CSP for images
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "http://localhost:4000", "http://localhost:5173"],
+    },
+  },
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -398,20 +409,33 @@ app.get("/api/images/:category", apiLimiter, async (req, res) => {
 });
 
 app.post("/api/images/upload", requireAuth, upload.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  console.log("Upload request received");
+  console.log("File:", req.file);
+  console.log("Body:", req.body);
+
+  if (!req.file) {
+    console.error("No file in request");
+    return res.status(400).json({ error: "No file uploaded" });
+  }
 
   const { category, order } = req.body;
 
-  const image = await prisma.siteImage.create({
-    data: {
-      category: category || "general",
-      filename: req.file.filename,
-      path: `/images/${req.file.filename}`,
-      order: parseInt(order) || 0,
-    },
-  });
+  try {
+    const image = await prisma.siteImage.create({
+      data: {
+        category: category || "general",
+        filename: req.file.filename,
+        path: `/images/${req.file.filename}`,
+        order: parseInt(order) || 0,
+      },
+    });
 
-  res.json(image);
+    console.log("Image saved to database:", image);
+    res.json(image);
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ error: "Failed to save image to database" });
+  }
 });
 
 app.delete("/api/images/:id", requireAuth, async (req, res) => {

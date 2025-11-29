@@ -382,21 +382,32 @@ export const imageAPI = {
 
   async uploadImage(file: File, category: string): Promise<Image | null> {
     try {
+      console.log("API: Creating FormData with file:", file.name, "category:", category);
       const formData = new FormData();
       formData.append("image", file);
       formData.append("category", category);
 
+      console.log("API: Sending POST to", `${API_BASE}/api/images/upload`);
       const response = await fetch(`${API_BASE}/api/images/upload`, {
         method: "POST",
         credentials: "include",
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to upload image");
-      return await response.json();
+      console.log("API: Response status:", response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API: Upload failed with response:", errorText);
+        throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("API: Upload successful, result:", result);
+      return result;
     } catch (error) {
-      console.error("Error uploading image:", error);
-      return null;
+      console.error("API: Error uploading image:", error);
+      throw error; // Re-throw instead of returning null
     }
   },
 
