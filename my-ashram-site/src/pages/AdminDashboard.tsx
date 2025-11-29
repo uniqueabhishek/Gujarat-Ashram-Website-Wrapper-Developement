@@ -178,13 +178,13 @@ const AdminDashboard = () => {
       }
 
       if (success) {
-        setMessage("âœ… Changes saved successfully!");
+        setMessage(" Changes saved successfully!");
         setTimeout(() => setMessage(""), 3000);
       } else {
-        setMessage("âŒ Failed to save changes");
+        setMessage(" Failed to save changes");
       }
     } catch (error) {
-      setMessage("âŒ Error: " + (error instanceof Error ? error.message : "Unknown error"));
+      setMessage(" Error: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -351,6 +351,8 @@ function MenuEditor({ items, setItems }: EditorProps<MenuItem>) {
       id: Date.now().toString(),
       name: "New Menu Item",
       url: "https://",
+      isSpecial: false,
+      variant: "default",
     };
     setItems([...items, newItem]);
   };
@@ -359,7 +361,7 @@ function MenuEditor({ items, setItems }: EditorProps<MenuItem>) {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: string, value: string) => {
+  const updateItem = (index: number, field: string, value: string | boolean) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: value };
     setItems(updated);
@@ -371,26 +373,56 @@ function MenuEditor({ items, setItems }: EditorProps<MenuItem>) {
 
       <div className="space-y-3">
         {items.map((item, idx) => (
-          <div key={idx} className="flex gap-2">
-            <input
-              className="flex-1 px-3 py-2 border rounded"
-              placeholder="Menu Name"
-              value={item.name}
-              onChange={(e) => updateItem(idx, "name", e.target.value)}
-            />
-            <input
-              className="flex-1 px-3 py-2 border rounded"
-              placeholder="URL"
-              value={item.url}
-              onChange={(e) => updateItem(idx, "url", e.target.value)}
-            />
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => removeItem(idx)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+          <div key={idx} className="space-y-2 p-3 border rounded-lg bg-gray-50">
+            <div className="flex gap-2">
+              <input
+                className="flex-1 px-3 py-2 border rounded"
+                placeholder="Menu Name"
+                value={item.name}
+                onChange={(e) => updateItem(idx, "name", e.target.value)}
+              />
+              <input
+                className="flex-1 px-3 py-2 border rounded"
+                placeholder="URL"
+                value={item.url}
+                onChange={(e) => updateItem(idx, "url", e.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => removeItem(idx)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Special Button Toggle */}
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={item.isSpecial || false}
+                  onChange={(e) => updateItem(idx, "isSpecial", e.target.checked)}
+                  className="w-4 h-4 text-orange-600"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Special Button
+                </span>
+              </label>
+
+              {/* Show variant selector only if isSpecial is true */}
+              {item.isSpecial && (
+                <select
+                  className="px-3 py-1.5 border rounded text-sm"
+                  value={item.variant || "default"}
+                  onChange={(e) => updateItem(idx, "variant", e.target.value)}
+                >
+                  <option value="default">Primary (Amber)</option>
+                  <option value="outline">Outline (White Border)</option>
+                  <option value="ghost">Ghost (Transparent)</option>
+                </select>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -723,14 +755,32 @@ function InfoCardsEditor({ items, setItems }: EditorProps<InfoCard>) {
     "Trees",
     "Flower",
     "Coffee",
+    "ImageIcon",
   ];
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Info Cards / Facilities</h2>
       <p className="text-sm text-gray-600 mb-4">
-        Manage the feature cards that appear on the homepage
+        Manage the feature cards that appear on the homepage. Colors auto-assign in rotation: Orange → Green → Blue.
       </p>
+
+      {/* Add color preview indicator */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+          Card Colors
+        </h3>
+        <p className="text-sm text-blue-800">
+          Cards automatically cycle through colors:
+          <span className="inline-flex gap-2 ml-2 mt-1 flex-wrap">
+            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">1st - Orange</span>
+            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">2nd - Green</span>
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">3rd - Blue</span>
+            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">4th - Orange</span>
+            <span className="text-xs text-blue-700">etc...</span>
+          </span>
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {items.map((item, idx) => (

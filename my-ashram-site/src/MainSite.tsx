@@ -25,7 +25,9 @@ import "swiper/css/pagination";
 import { EffectFade, Autoplay, Navigation, Pagination } from "swiper/modules";
 
 // ✅ Backend API Integration
-import { contentAPI, imageAPI, contactAPI, MenuItem, HeroButton, FooterLink, Image, ContactInfo } from "@/lib/api";
+import { contentAPI, imageAPI, contactAPI, infoCardsAPI, MenuItem, HeroButton, FooterLink, Image, ContactInfo, InfoCard } from "@/lib/api";
+import { getIconComponent } from "@/lib/iconMapping";
+import { getCardColors } from "@/lib/cardColors";
 
 const API_BASE = "http://localhost:4000";
 
@@ -37,6 +39,7 @@ export default function MainSite() {
   const [contactInfo, setContactInfo] = useState<ContactInfo[]>([]);
   const [heroImages, setHeroImages] = useState<Image[]>([]);
   const [galleryImages, setGalleryImages] = useState<Image[]>([]);
+  const [infoCards, setInfoCards] = useState<InfoCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ✅ Original UI state
@@ -51,13 +54,14 @@ export default function MainSite() {
   async function loadContent() {
     try {
       console.log("MainSite: Loading content from backend...");
-      const [menu, hero, footer, contact, heroImgs, galleryImgs] = await Promise.all([
+      const [menu, hero, footer, contact, heroImgs, galleryImgs, cards] = await Promise.all([
         contentAPI.getMenuItems(),
         contentAPI.getHeroButtons(),
         contentAPI.getFooterLinks(),
         contactAPI.getContactInfo(),
         imageAPI.getImagesByCategory("hero"),
         imageAPI.getImagesByCategory("gallery"),
+        infoCardsAPI.getInfoCards(),
       ]);
 
       console.log("MainSite: Hero images received:", heroImgs);
@@ -92,7 +96,9 @@ export default function MainSite() {
 
       setHeroImages(heroImgs);
       setGalleryImages(galleryImgs);
+      setInfoCards(cards);
       console.log("MainSite: Content loaded successfully");
+      console.log("MainSite: Info cards received:", cards);
     } catch (error) {
       console.error("Failed to load content:", error);
       // Set fallback data
@@ -434,34 +440,13 @@ export default function MainSite() {
       <main>
         {/* INFO CARDS */}
         <section className="px-6 -mt-20 relative z-20">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Home,
-                title: "Ashram Overview",
-                desc: "Spreading happiness through yoga, meditation, and seva in a pristine environment.",
-                color: "bg-orange-50",
-                iconColor: "text-orange-500"
-              },
-              {
-                icon: Users,
-                title: "Activities & Programs",
-                desc: "Join Sudarshan Kriya, silence retreats, and community service projects.",
-                color: "bg-green-50",
-                iconColor: "text-green-500"
-              },
-              {
-                icon: ImageIcon,
-                title: "Facilities",
-                desc: "Comfortable accommodation, sattvic dining, lush gardens, and meditation halls.",
-                color: "bg-blue-50",
-                iconColor: "text-blue-500"
-              }
-            ].map((card, i) => {
-              const Icon = card.icon;
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {infoCards.map((card, i) => {
+              const IconComponent = getIconComponent(card.icon);
+              const colors = getCardColors(i);
               return (
                 <motion.div
-                  key={i}
+                  key={card.id}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -472,11 +457,11 @@ export default function MainSite() {
                   <Card className="h-full bg-white/95 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all border-none overflow-hidden">
                     <div className="h-1 bg-gradient-to-r from-ashram-amber to-transparent w-0 group-hover:w-full transition-all duration-500" />
                     <CardContent className="p-8 text-center">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 ${card.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform`}>
-                        <Icon className={`w-8 h-8 ${card.iconColor}`} />
+                      <div className={`inline-flex items-center justify-center w-16 h-16 ${colors.background} rounded-2xl mb-6 group-hover:scale-110 transition-transform`}>
+                        <IconComponent className={`w-8 h-8 ${colors.icon}`} />
                       </div>
                       <h3 className="font-serif font-bold text-xl mb-3 text-ashram-clay">{card.title}</h3>
-                      <p className="text-ashram-stone/70 leading-relaxed">{card.desc}</p>
+                      <p className="text-ashram-stone/70 leading-relaxed">{card.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
